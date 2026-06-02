@@ -120,10 +120,7 @@ export default function Home() {
           </motion.div>
         </div>
 
-        {/* Floating Scroll Indicator */}
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4">
-          <div className="w-[1px] h-12 bg-gradient-to-b from-transparent via-bonchona-red to-transparent"></div>
-        </div>
+        {/* Floating Scroll Indicator Removed */}
       </section>
 
       {/* Stats Marquee Strip */}
@@ -144,11 +141,11 @@ export default function Home() {
       </section>
 
       {/* Programming Section - Bento Grid Style */}
-      <section className="w-full max-w-7xl mx-auto px-6 py-32 z-10">
+      <section className="w-full max-w-7xl mx-auto px-6 py-20 z-10">
         <div className="flex flex-col items-start mb-20">
           <span className="text-bonchona-purple-medium font-black tracking-[0.4em] text-xs uppercase mb-6 block">Nuestra Parrilla</span>
           <h2 className="text-5xl md:text-7xl font-black mb-8 italic uppercase tracking-tighter leading-none">
-            PROGRAMACIÓN <br /> <span className="text-gradient">ELITE.</span>
+            PROGRAMACIÓN <br /> <span className="text-gradient">MASTER.</span>
           </h2>
           <p className="text-zinc-500 max-w-xl text-lg">
             Los programas que mueven a Valencia y al centro de Venezuela. Talento, música y sintonía total todos los días.
@@ -214,7 +211,7 @@ export default function Home() {
       </section>
 
       {/* Estudio Section - Asymmetric Editorial */}
-      <section id="estudio" className="w-full max-w-7xl mx-auto px-6 py-32 z-10 border-t border-white/5">
+      <section id="estudio" className="w-full max-w-7xl mx-auto px-6 py-20 z-10 border-t border-white/5">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
           <div className="relative order-2 lg:order-1">
             <div className="absolute -inset-8 bg-bonchona-red/10 blur-[100px] rounded-full"></div>
@@ -231,7 +228,7 @@ export default function Home() {
             
             <div className="absolute -bottom-10 -right-10 hidden xl:block glass p-10 rounded-[2.5rem] max-w-xs shadow-2xl border-white/10">
               <div className="w-10 h-1 bg-bonchona-red mb-4"></div>
-              <p className="text-white font-bold mb-3 uppercase italic">Estudio Elite</p>
+              <p className="text-white font-bold mb-3 uppercase italic">Estudio Master</p>
               <p className="text-zinc-500 text-xs leading-relaxed">Captura de voz, doblaje y producción musical con el equipamiento más avanzado del país.</p>
             </div>
           </div>
@@ -267,55 +264,27 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer Identity */}
-      <footer className="w-full py-48 px-6 z-10 bg-bonchona-navy border-t border-white/5 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-        
-        <div className="max-w-7xl mx-auto flex flex-col items-center">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center w-full mb-40">
-            <div className="flex flex-col items-start gap-12">
-              <Image src="/logos-bonchona/92.png" alt="Bonchona Logo" width={120} height={120} className="opacity-90" />
-              <div className="space-y-8">
-                <h4 className="text-bonchona-red font-black text-xs uppercase tracking-[0.5em]">Legado Carlos Briceño</h4>
-                <p className="text-zinc-400 text-2xl leading-relaxed max-w-lg font-medium italic">
-                  Radio Bonchona es un compromiso innegociable con el entretenimiento de Venezuela. Desde 1997, liderando el dial.
-                </p>
-              </div>
-              <Link href="/nosotros" className="text-white font-black uppercase tracking-[0.5em] text-[11px] hover:text-bonchona-red transition-all flex items-center gap-5 group">
-                 CONOCE NUESTRA HISTORIA
-                 <div className="w-12 h-px bg-white/20 group-hover:bg-bonchona-red group-hover:w-20 transition-all"></div>
-              </Link>
-            </div>
-            
-            <div className="flex flex-col lg:items-end justify-center relative">
-              <span className="text-bonchona-purple-medium font-black text-xs uppercase tracking-[1.2em] mb-6 mr-6">VALENCIA</span>
-              <h2 className="text-[140px] md:text-[240px] font-black text-white/5 leading-none italic uppercase tracking-tighter select-none">
+      {/* Final Identity Strip / Footer */}
+      <footer className="w-full py-20 px-6 z-10 bg-bonchona-navy border-t border-white/5 relative">
+        <div className="max-w-7xl mx-auto flex flex-col items-center gap-12">
+          <div className="flex flex-col items-center gap-6">
+            <Image src="/logos-bonchona/92.png" alt="Logo" width={80} height={80} className="opacity-40" />
+            <div className="text-center">
+              <h2 className="text-[100px] md:text-[140px] font-black text-white/5 leading-none italic uppercase tracking-tighter select-none">
                 107.1
               </h2>
-              <p className="text-zinc-700 font-black italic uppercase tracking-[0.5em] -mt-10 md:-mt-16 mr-6 text-sm md:text-lg">La que te gusta.</p>
+              <p className="text-zinc-600 font-black uppercase tracking-[0.8em] text-[10px] mt-4">Valencia, Venezuela</p>
             </div>
           </div>
-
-          <div className="w-full pt-20 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-16 text-center md:text-left">
-            <div className="flex flex-col gap-4">
-              <p className="text-[11px] font-black text-zinc-500 uppercase tracking-[0.5em]">© 2026 Radio Bonchona</p>
-              <p className="text-[10px] text-zinc-700 font-bold uppercase tracking-[0.3em]">Carabobo, Venezuela. Sintonía Total.</p>
-            </div>
-            
-            <div className="flex gap-14">
-               {[
-                 { l: "Instagram", h: "#" },
-                 { l: "X / Twitter", h: "#" },
-                 { l: "WhatsApp", h: "#" }
-               ].map((soc, i) => (
-                 <a key={i} href={soc.h} className="text-[10px] font-black text-zinc-600 hover:text-white transition-colors uppercase tracking-[0.4em]">{soc.l}</a>
-               ))}
-            </div>
-
-            <div className="flex gap-10">
-              <Link href="/nosotros" className="text-[10px] font-black text-zinc-600 hover:text-white transition-colors uppercase tracking-[0.4em]">Empresa</Link>
-              <Link href="/estudio" className="text-[10px] font-black text-zinc-600 hover:text-white transition-colors uppercase tracking-[0.4em]">Servicios</Link>
-              <Link href="/famoso" className="text-[10px] font-black text-bonchona-red hover:text-white transition-colors uppercase tracking-[0.4em]">Talento</Link>
+          
+          <div className="w-full h-px bg-white/5"></div>
+          
+          <div className="flex flex-col md:flex-row justify-between items-center w-full gap-8">
+            <p className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest">© 2026 Radio Bonchona. Todos los derechos reservados.</p>
+            <div className="flex gap-8">
+              <Link href="/nosotros" className="text-[10px] font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">Empresa</Link>
+              <Link href="/estudio" className="text-[10px] font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">Estudio</Link>
+              <Link href="/famoso" className="text-[10px] font-bold text-bonchona-red hover:text-white transition-colors uppercase tracking-widest">Anúnciate</Link>
             </div>
           </div>
         </div>
@@ -351,7 +320,7 @@ export default function Home() {
 
               {/* Content Side */}
               <div className="w-full lg:w-1/2 p-10 lg:p-16 flex flex-col justify-center">
-                <span className="text-bonchona-red text-xs font-black uppercase tracking-[0.4em] mb-6 block">Sintonía Elite</span>
+                <span className="text-bonchona-red text-xs font-black uppercase tracking-[0.4em] mb-6 block">Sintonía Premium</span>
                 <h2 className="text-5xl lg:text-7xl font-black mb-10 italic uppercase tracking-tighter leading-none">
                   {selectedProgram.title}
                 </h2>
