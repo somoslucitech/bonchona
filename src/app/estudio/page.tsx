@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { motion } from 'motion/react';
 
 const SERVICES = [
   {
@@ -31,94 +32,106 @@ export default function EstudioPage() {
   const WHATSAPP_CONTACT = "584244001367";
 
   return (
-    <div className="flex flex-col items-center w-full bg-[#050505] text-white min-h-screen">
+    <div className="flex flex-col items-center w-full bg-bonchona-navy text-white min-h-screen overflow-x-hidden">
+      {/* Mesh Gradient Background Layer */}
+      <div className="fixed inset-0 bg-mesh-brand pointer-events-none opacity-40 z-0"></div>
+
       {/* Cinematic Hero */}
-      <section className="relative w-full h-screen flex flex-col items-center justify-center text-center px-4 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <video 
-            autoPlay 
-            muted 
-            loop 
-            className="w-full h-full object-cover opacity-40 grayscale"
-            poster="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2070&auto=format&fit=crop"
+      <section className="relative w-full min-h-[100dvh] flex flex-col items-center justify-center text-center px-6 lg:px-24 py-24 z-10">
+        <div className="max-w-7xl w-full">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full glass border-white/10 mb-12"
           >
-            {/* Si tuvieras un video real, iría aquí. Usamos poster por ahora */}
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-black/20 to-black"></div>
-        </div>
-
-        <div className="relative z-10 max-w-5xl">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-brand/30 bg-brand/5 mb-8 animate-in fade-in slide-in-from-top-4 duration-1000">
-             <span className="w-2 h-2 bg-brand rounded-full animate-pulse"></span>
-             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-brand">The Production House</span>
-          </div>
+             <span className="w-2 h-2 bg-bonchona-red rounded-full animate-pulse"></span>
+             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-white/60">The Production House</span>
+          </motion.div>
           
-          <h1 className="text-6xl md:text-[10rem] font-black tracking-tighter mb-8 leading-none italic uppercase mix-blend-difference">
-            ESTUDIO <br /><span className="text-brand">ELITE.</span>
-          </h1>
+          <motion.h1 
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-6xl md:text-[10rem] lg:text-[13rem] font-black tracking-tighter mb-12 leading-none italic uppercase"
+          >
+            ESTUDIO <br /><span className="text-gradient">ELITE.</span>
+          </motion.h1>
           
-          <p className="text-zinc-400 text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed font-light">
-            Donde la tecnología <span className="text-white font-bold">4K</span> se encuentra con la acústica perfecta. Tu contenido merece la calidad de los líderes.
-          </p>
-
-          <div className="mt-12 flex justify-center gap-6">
-             <div className="w-[1px] h-24 bg-gradient-to-b from-brand to-transparent"></div>
-          </div>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-zinc-400 text-xl md:text-3xl max-w-4xl mx-auto leading-relaxed font-medium"
+          >
+            Donde la tecnología <span className="text-white font-black italic">4K</span> se encuentra con la acústica perfecta. Tu contenido merece la calidad de los líderes.
+          </motion.p>
         </div>
       </section>
 
-      {/* Philosophy Section */}
-      <section className="w-full max-w-7xl mx-auto px-6 py-32 grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
-         <div>
-            <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter mb-8">
-               Tu visión, <br /> nuestro <span className="text-brand">Espacio.</span>
+      {/* Philosophy Section - Asymmetric Editorial */}
+      <section className="w-full max-w-7xl mx-auto px-6 py-32 grid grid-cols-1 lg:grid-cols-2 gap-24 items-center z-10">
+         <div className="flex flex-col items-start">
+            <span className="text-bonchona-purple-medium font-black tracking-[0.4em] text-xs uppercase mb-8 block">Nuestra Visión</span>
+            <h2 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter mb-10 leading-[0.9]">
+               TU VISIÓN, <br /> NUESTRO <span className="text-bonchona-red">ESPACIO.</span>
             </h2>
-            <p className="text-zinc-500 text-lg leading-relaxed mb-8">
-               En Bonchona Estudio no solo grabamos audio. Diseñamos atmósferas. Nuestro set es totalmente camaleónico: desde una iluminación tenue para podcasts íntimos hasta una configuración vibrante y colorida para producciones musicales.
+            <p className="text-zinc-500 text-xl leading-relaxed mb-12 max-w-lg font-medium">
+               En Bonchona Estudio no solo grabamos audio. Diseñamos atmósferas camaleónicas: desde una iluminación tenue para podcasts íntimos hasta configuraciones vibrantes.
             </p>
-            <div className="space-y-4">
-               {["Decoración Adaptable", "Cámaras 4K de Alta Gama", "Tratamiento Acústico Profesional", "Staff Técnico Especializado"].map((item, i) => (
-                  <div key={i} className="flex items-center gap-4 group">
-                     <div className="w-12 h-[1px] bg-zinc-800 group-hover:w-16 group-hover:bg-brand transition-all"></div>
-                     <span className="text-sm font-black uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors">{item}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+               {[
+                 "Decoración Adaptable", 
+                 "Cámaras 4K de Alta Gama", 
+                 "Acústica Profesional", 
+                 "Staff Especializado"
+               ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-4 group p-4 glass rounded-2xl border-white/5">
+                     <div className="w-2 h-2 bg-bonchona-red rounded-full group-hover:scale-150 transition-all"></div>
+                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors">{item}</span>
                   </div>
                ))}
             </div>
          </div>
          <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-brand to-orange-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-            <Image 
-               src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=1974&auto=format&fit=crop" 
-               alt="Studio Setup" 
-               className="relative rounded-[2rem] border border-white/5 shadow-2xl transition-transform duration-700 group-hover:scale-[1.02] object-cover"
-               width={800}
-               height={600}
-            />
+            <div className="absolute -inset-10 bg-bonchona-red/10 blur-[120px] rounded-full opacity-50 group-hover:opacity-80 transition-opacity"></div>
+            <div className="relative glass rounded-[3rem] overflow-hidden border-white/10 p-4">
+              <Image 
+                 src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=1974&auto=format&fit=crop" 
+                 alt="Studio Setup" 
+                 className="relative rounded-[2.5rem] grayscale group-hover:grayscale-0 transition-all duration-1000 object-cover w-full h-auto"
+                 width={800}
+                 height={600}
+              />
+            </div>
          </div>
       </section>
 
-      {/* Premium Services Cards */}
-      <section className="w-full max-w-7xl mx-auto px-6 py-32 bg-zinc-950/50 rounded-[4rem] border border-white/5">
-        <div className="text-center mb-24">
-           <h3 className="text-brand font-black tracking-[0.5em] text-xs uppercase mb-4">Portafolio de Servicios</h3>
-           <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter">Soluciones de Grado <span className="text-brand">Broadcast.</span></h2>
+      {/* Premium Services Cards - Bento Style */}
+      <section className="w-full max-w-7xl mx-auto px-6 py-32 z-10 border-t border-white/5">
+        <div className="flex flex-col items-start mb-24">
+           <h3 className="text-bonchona-purple-medium font-black tracking-[0.5em] text-xs uppercase mb-6 block">Portafolio de Servicios</h3>
+           <h2 className="text-5xl md:text-7xl font-black italic uppercase tracking-tighter leading-none">SOLUCIONES DE <br /><span className="text-gradient">GRADO BROADCAST.</span></h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {SERVICES.map((service, i) => (
-            <div key={i} className="group relative p-12 rounded-[3rem] bg-zinc-900/30 border border-white/5 hover:border-brand/40 transition-all duration-700 flex flex-col h-full">
-              <div className="text-5xl mb-8 group-hover:scale-110 transition-transform duration-700 inline-block">{service.icon}</div>
-              <h3 className="text-3xl font-black uppercase italic mb-6 tracking-tighter text-white group-hover:text-brand transition-colors">
+            <motion.div 
+              key={i} 
+              whileHover={{ y: -12 }}
+              className="group relative p-12 rounded-[3rem] glass border-white/5 hover:border-bonchona-red/40 transition-all duration-700 flex flex-col h-full"
+            >
+              <div className="text-5xl mb-10 group-hover:scale-110 transition-transform duration-700">{service.icon}</div>
+              <h3 className="text-3xl font-black uppercase italic mb-8 tracking-tighter text-white group-hover:text-bonchona-red transition-colors leading-none">
                 {service.title}
               </h3>
-              <p className="text-zinc-500 leading-relaxed text-sm mb-8 flex-1">
+              <p className="text-zinc-500 leading-relaxed text-sm mb-12 flex-1 font-medium">
                 {service.desc}
               </p>
               
-              <ul className="space-y-3 mb-10">
+              <ul className="grid grid-cols-1 gap-4 mb-12">
                  {service.features.map((f, j) => (
-                    <li key={j} className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
-                       <span className="w-1.5 h-1.5 bg-brand rounded-full"></span> {f}
+                    <li key={j} className="text-[10px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-3">
+                       <span className="w-1.5 h-1.5 bg-bonchona-red rounded-full"></span> {f}
                     </li>
                  ))}
               </ul>
@@ -127,38 +140,45 @@ export default function EstudioPage() {
                 href={`https://wa.me/${WHATSAPP_CONTACT}?text=${encodeURIComponent(service.msg)}`}
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-full py-5 bg-white/5 group-hover:bg-brand group-hover:text-white border border-white/10 group-hover:border-transparent text-white font-black rounded-2xl transition-all uppercase tracking-widest text-xs text-center"
+                className="w-full py-6 bg-bonchona-red text-white font-black rounded-2xl shadow-[0_10px_30px_rgba(232,75,50,0.2)] hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-[10px] text-center"
               >
                 Contratar Servicio
               </a>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
-      {/* CTA Final */}
-      <section className="w-full max-w-5xl mx-auto px-6 py-48 text-center">
-         <h2 className="text-5xl md:text-8xl font-black uppercase italic tracking-tighter mb-12">
-            Eleva tu <br /><span className="text-brand">Estándar.</span>
-         </h2>
-         <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-            <a 
+      {/* CTA Final - Impact Editorial */}
+      <section className="w-full max-w-7xl mx-auto px-6 py-48 text-center z-10">
+         <motion.h2 
+           whileInView={{ opacity: 1, scale: 1 }}
+           initial={{ opacity: 0, scale: 0.9 }}
+           className="text-6xl md:text-[140px] font-black uppercase italic tracking-tighter mb-16 leading-none"
+         >
+            ELEVA TU <br /><span className="text-gradient">ESTÁNDAR.</span>
+         </motion.h2>
+         <div className="flex flex-col md:flex-row items-center justify-center gap-10">
+            <motion.a 
+               whileHover={{ scale: 1.05 }}
+               whileTap={{ scale: 0.95 }}
                href={`https://wa.me/${WHATSAPP_CONTACT}?text=Hola%20Bonchona!%20Deseo%20hacer%20una%20consulta%20general%20sobre%20sus%20servicios%20de%20contrataci%C3%B3n.`}
                target="_blank" 
                rel="noopener noreferrer"
-               className="px-16 py-6 bg-brand text-white font-black rounded-full hover:scale-105 transition-all uppercase tracking-widest text-sm shadow-[0_0_50px_rgba(255,79,0,0.3)]"
+               className="px-16 py-7 bg-bonchona-red text-white font-black rounded-full shadow-[0_20px_40px_rgba(232,75,50,0.3)] uppercase tracking-[0.2em] text-sm"
             >
                Consultar ahora
-            </a>
-            <Link href="/" className="text-zinc-500 hover:text-white transition-colors uppercase font-black tracking-widest text-xs">
+            </motion.a>
+            <Link href="/" className="text-zinc-500 hover:text-white transition-colors uppercase font-black tracking-[0.4em] text-[10px]">
                Explorar Radio
             </Link>
          </div>
       </section>
 
-      <div className="pb-24">
-         <Image src="/logos-bonchona/92.png" className="h-12 w-auto opacity-20 grayscale object-contain" alt="Logo" width={48} height={48} />
-      </div>
+      <footer className="pb-32 z-10 opacity-30">
+         <Image src="/logos-bonchona/92.png" className="h-16 w-auto" alt="Logo" width={64} height={64} />
+      </footer>
     </div>
   );
 }
+

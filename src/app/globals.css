@@ -17,6 +17,8 @@
 
   /* Gradients */
   --background-image-bonchona-gradient: linear-gradient(135deg, var(--bonchona-red), var(--bonchona-purple));
+  --background-image-mesh-brand: radial-gradient(at 0% 0%, rgba(232, 75, 50, 0.15) 0px, transparent 50%),
+                                radial-gradient(at 100% 0%, rgba(92, 15, 139, 0.15) 0px, transparent 50%);
 
   --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
@@ -25,26 +27,37 @@
 :root {
   --background: #050505;
   --foreground: #f0f0f0;
-  --brand: #FF4F00; /* Naranja Bonchona Premium */
-  --brand-hover: #FF7033;
+  --brand: #E84B32; /* Redefinido a Rojo Bonchona */
+  --brand-hover: #ff5e45;
 
   /* Brand Colors from Manual */
-  /* Primary */
   --bonchona-red: #E84B32;
   --bonchona-purple: #5C0F8B;
-  
-  /* Secondary */
   --bonchona-rubine: #E02057;
   --bonchona-purple-medium: #A3177F;
-  --bonchona-navy: #292D65;
+  --bonchona-navy: #0A0B1E; /* Darker Navy for Background */
 }
 
 body {
-  background: var(--background);
+  background: var(--bonchona-navy);
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-attachment: fixed;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #E84B32, #A3177F);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* Custom scrollbar for premium feel */
