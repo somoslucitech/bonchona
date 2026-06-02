@@ -74,27 +74,48 @@ export default function GlobalPlayer() {
       const centerY = canvasR.height / 2;
       
       const BRAND_ORANGE = "#FF4F00";
+      const BRAND_PURPLE = "#5C0F8B";
+      
       const waves = [
         { color: BRAND_ORANGE, opacity: 0.8, freq: 0.04, speed: 4, amp: 8 },
-        { color: BRAND_ORANGE, opacity: 0.4, freq: 0.02, speed: 2, amp: 12 },
-        { color: BRAND_ORANGE, opacity: 0.2, freq: 0.06, speed: 6, amp: 5 }
+        { color: BRAND_PURPLE, opacity: 0.6, freq: 0.02, speed: 2, amp: 12 },
+        { color: BRAND_ORANGE, isGradient: true, opacity: 0.4, freq: 0.06, speed: 6, amp: 5 }
       ];
 
       const drawOnContext = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
         waves.forEach((w) => {
           ctx.beginPath();
           ctx.lineWidth = 2;
-          ctx.strokeStyle = w.color;
+          
+          const isPurple = w.color === BRAND_PURPLE || w.isGradient;
+          const shadowColor = isPurple ? BRAND_PURPLE : BRAND_ORANGE;
+
+          ctx.strokeStyle = w.isGradient ? BRAND_ORANGE : w.color;
           ctx.globalAlpha = w.opacity;
-          ctx.shadowBlur = isPlaying ? 15 * intensity : 0;
-          ctx.shadowColor = w.color;
+          
+          // Potenciamos el brillo basándonos en la intensidad del audio
+          ctx.shadowBlur = isPlaying ? 25 * intensity : 0;
+          ctx.shadowColor = shadowColor;
 
           // Creamos un degradado horizontal para difuminar los bordes
           const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-          gradient.addColorStop(0, "rgba(255, 79, 0, 0)"); // Transparente inicio
-          gradient.addColorStop(0.2, w.color);            // Color sólido 20%
-          gradient.addColorStop(0.8, w.color);            // Color sólido 80%
-          gradient.addColorStop(1, "rgba(255, 79, 0, 0)"); // Transparente final
+          
+          if (w.isGradient) {
+            gradient.addColorStop(0, "rgba(255, 79, 0, 0)"); // Transparente inicio
+            gradient.addColorStop(0.2, BRAND_ORANGE);       // Naranja 20%
+            gradient.addColorStop(0.8, BRAND_PURPLE);       // Morado 80%
+            gradient.addColorStop(1, "rgba(92, 15, 139, 0)"); // Transparente final (morado)
+          } else {
+            const r = parseInt(w.color.slice(1, 3), 16);
+            const g = parseInt(w.color.slice(3, 5), 16);
+            const b = parseInt(w.color.slice(5, 7), 16);
+            
+            gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`); // Transparente inicio
+            gradient.addColorStop(0.2, w.color);            // Color sólido 20%
+            gradient.addColorStop(0.8, w.color);            // Color sólido 80%
+            gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`); // Transparente final
+          }
+          
           ctx.strokeStyle = gradient;
 
           for (let x = 0; x <= canvas.width; x += 2) {

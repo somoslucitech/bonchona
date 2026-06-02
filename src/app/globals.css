@@ -5,6 +5,19 @@
   --color-foreground: var(--foreground);
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
+  
+  /* Primary Colors */
+  --color-bonchona-red: var(--bonchona-red);
+  --color-bonchona-purple: var(--bonchona-purple);
+  
+  /* Secondary Colors */
+  --color-bonchona-rubine: var(--bonchona-rubine);
+  --color-bonchona-purple-medium: var(--bonchona-purple-medium);
+  --color-bonchona-navy: var(--bonchona-navy);
+
+  /* Gradients */
+  --background-image-bonchona-gradient: linear-gradient(135deg, var(--bonchona-red), var(--bonchona-purple));
+
   --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 }
@@ -14,6 +27,16 @@
   --foreground: #f0f0f0;
   --brand: #FF4F00; /* Naranja Bonchona Premium */
   --brand-hover: #FF7033;
+
+  /* Brand Colors from Manual */
+  /* Primary */
+  --bonchona-red: #E84B32;
+  --bonchona-purple: #5C0F8B;
+  
+  /* Secondary */
+  --bonchona-rubine: #E02057;
+  --bonchona-purple-medium: #A3177F;
+  --bonchona-navy: #292D65;
 }
 
 body {
