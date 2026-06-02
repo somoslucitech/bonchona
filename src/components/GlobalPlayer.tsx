@@ -1,6 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
+
+// URLs
+const PREROLL_URL = "https://cdn.pixabay.com/audio/2022/10/14/audio_9939f77042.mp3"; 
+const ICECAST_URL = "https://radio.20favoritas.com:8443/stream"; 
 
 export default function GlobalPlayer() {
   const [mounted, setMounted] = useState(false);
@@ -16,17 +21,13 @@ export default function GlobalPlayer() {
   const animationRef = useRef<number | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 
-  // URLs
-  const PREROLL_URL = "https://cdn.pixabay.com/audio/2022/10/14/audio_9939f77042.mp3"; 
-  const ICECAST_URL = "https://radio.20favoritas.com:8443/stream"; 
-
   // --- Audio Logic ---
 
   const initAudioContext = useCallback(() => {
     if (audioContextRef.current || !audioRef.current) return;
     
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AudioContextClass();
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256; 
@@ -144,8 +145,11 @@ export default function GlobalPlayer() {
   }, []);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
     return () => {
+      clearTimeout(timer);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, []);
@@ -158,21 +162,21 @@ export default function GlobalPlayer() {
     }
   }, [isPlaying, mounted, drawWave]);
 
-  const handleEnded = () => {
+  const handleEnded = useCallback(() => {
     if (status === "playing_preroll") {
       playLive();
     }
-  };
+  }, [status, playLive]);
 
-  const handleAudioError = () => {
+  const handleAudioError = useCallback(() => {
     // Si falla el preroll o cualquier audio, intentamos ir al live como fallback silencioso
     if (status === "playing_preroll" || status === "idle") {
       console.warn("Preroll failed or unconfigured, skipping to live...");
       playLive();
     }
-  };
+  }, [status, playLive]);
 
-  const togglePlay = async () => {
+  const togglePlay = useCallback(async () => {
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -194,7 +198,7 @@ export default function GlobalPlayer() {
       try {
         await audio.play();
         setIsPlaying(true);
-      } catch (e) {
+      } catch {
         // Error silencioso: si falla el play (por ejemplo preroll roto), saltamos al live
         playLive();
       }
@@ -202,7 +206,7 @@ export default function GlobalPlayer() {
       audio.pause();
       setIsPlaying(false);
     }
-  };
+  }, [isPlaying, status, initAudioContext, playLive]);
 
   useEffect(() => {
     const handleRemotePlay = () => {
@@ -244,7 +248,7 @@ export default function GlobalPlayer() {
 
       <div className="flex items-center gap-4 w-1/3">
         <div className="relative w-14 h-14 bg-zinc-900 rounded-xl overflow-hidden border border-white/5 flex items-center justify-center">
-          <img src="/logos-bonchona/92.png" className="w-10 h-10 object-contain" alt="Logo" />
+          <Image src="/logos-bonchona/92.png" className="w-10 h-10 object-contain" alt="Logo" width={40} height={40} />
           {isPlaying && <div className="absolute inset-0 bg-brand/10 animate-pulse"></div>}
         </div>
         <div className="hidden sm:block">
@@ -285,10 +289,12 @@ export default function GlobalPlayer() {
           rel="noopener noreferrer"
           className="hidden lg:flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-brand/20 border border-white/10 rounded-full transition-all group"
         >
-          <img 
+          <Image 
             src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" 
             alt="WhatsApp" 
             className="w-4 h-4" 
+            width={16}
+            height={16}
           />
           <span className="text-[10px] font-black uppercase tracking-widest text-white">Pidelá!</span>
         </a>

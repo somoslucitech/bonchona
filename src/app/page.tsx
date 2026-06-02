@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const PROGRAMS = [
   {
@@ -183,10 +184,11 @@ export default function Home() {
             <div className="flex flex-col md:flex-row h-full">
               {/* Image Side */}
               <div className="w-full md:w-1/2 relative h-64 md:h-[600px] overflow-hidden group">
-                <img 
+                <Image 
                   src={selectedProgram.banner} 
                   alt={selectedProgram.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent"></div>
                 <div className="absolute bottom-8 left-8">
@@ -210,7 +212,7 @@ export default function Home() {
                   </div>
 
                   <p className="text-zinc-300 text-lg leading-relaxed font-medium italic">
-                    "{selectedProgram.richText}"
+                    &quot;{selectedProgram.richText}&quot;
                   </p>
 
                   <p className="text-zinc-500 text-sm leading-relaxed">
@@ -220,7 +222,7 @@ export default function Home() {
 
                 <div className="mt-10 flex items-center gap-4">
                    <div className="h-[1px] flex-1 bg-white/10"></div>
-                   <img src="/logos-bonchona/92.png" className="h-6 opacity-30" alt="Logo" />
+                   <Image src="/logos-bonchona/92.png" className="h-6 w-auto opacity-30" alt="Logo" width={24} height={24} />
                    <div className="h-[1px] flex-1 bg-white/10"></div>
                 </div>
               </div>
@@ -235,10 +237,12 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="order-2 lg:order-1 relative">
             <div className="absolute -inset-4 bg-brand/20 blur-3xl rounded-full"></div>
-            <img 
+            <Image 
               src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=2070&auto=format&fit=crop" 
               alt="Estudio de Grabación" 
-              className="relative rounded-3xl border border-white/10 shadow-2xl grayscale hover:grayscale-0 transition-all duration-700"
+              width={800}
+              height={500}
+              className="relative rounded-3xl border border-white/10 shadow-2xl grayscale hover:grayscale-0 transition-all duration-700 w-full h-auto"
             />
             <div className="absolute bottom-6 left-6 bg-black/60 backdrop-blur-md border border-white/10 p-6 rounded-2xl max-w-xs">
               <p className="text-white font-bold mb-2">Tecnología de Punta</p>
@@ -321,7 +325,7 @@ export default function Home() {
       <section className="w-full py-24 px-6 border-t border-white/5 bg-zinc-900/20">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-20 items-center">
           <div>
-             <img src="/logos-bonchona/92.png" alt="Bonchona Logo" className="h-16 mb-8" />
+             <Image src="/logos-bonchona/92.png" alt="Bonchona Logo" className="h-16 w-auto mb-8" width={64} height={64} />
              <p className="text-zinc-500 leading-relaxed text-sm max-w-sm mb-6">
                 Bonchona 107.1 FM es un legado de Carlos Briceño. Desde 1997, marcando la pauta musical y el entretenimiento en el centro de Venezuela. ¡Sintonía Total!
              </p>

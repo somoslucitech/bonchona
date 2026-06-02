@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function QuienesSomosPage() {
   return (
@@ -9,10 +10,11 @@ export default function QuienesSomosPage() {
       <section className="relative w-full h-[80vh] flex flex-col items-center justify-center text-center px-4 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-black/60 z-10"></div>
-          <img 
+          <Image 
             src="https://images.unsplash.com/photo-1478737270239-2f02b77fc618?q=80&w=2070&auto=format&fit=crop" 
             alt="Vintage Radio Mic" 
             className="w-full h-full object-cover opacity-50 grayscale"
+            fill
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505]/80 z-20"></div>
         </div>
@@ -38,7 +40,7 @@ export default function QuienesSomosPage() {
          <div className="relative group order-2 lg:order-1">
             <div className="absolute -inset-1 bg-gradient-to-r from-brand/20 to-zinc-800 rounded-[2rem] blur opacity-25"></div>
             <div className="relative rounded-[2rem] border border-white/5 overflow-hidden bg-zinc-900 aspect-square flex items-center justify-center p-12">
-               <img src="/logos-bonchona/92.png" className="w-64 h-64 object-contain opacity-20 grayscale absolute" alt="Bonchona Logo" />
+               <Image src="/logos-bonchona/92.png" className="w-64 h-64 object-contain opacity-20 grayscale absolute" alt="Bonchona Logo" width={256} height={256} />
                <div className="relative z-10 text-center">
                   <p className="text-brand text-7xl font-black italic mb-2">1997</p>
                   <p className="text-white text-xs font-black uppercase tracking-[0.3em]">El inicio de un sueño</p>
@@ -52,7 +54,7 @@ export default function QuienesSomosPage() {
             </h3>
             <div className="space-y-6 text-zinc-400 text-lg leading-relaxed">
                <p>
-                  Radio Bonchona 107.1 FM no nació de la nada. Sus raíces se hunden en el éxito rotundo de <strong>"Favoritas"</strong>, el programa musical que marcó una época en el centro del país y que sirvió de inspiración para que nuestro fundador, Carlos Briceño, materializara un sueño mayor.
+                  Radio Bonchona 107.1 FM no nació de la nada. Sus raíces se hunden en el éxito rotundo de <strong>&quot;Favoritas&quot;</strong>, el programa musical que marcó una época en el centro del país y que sirvió de inspiración para que nuestro fundador, Carlos Briceño, materializara un sueño mayor.
                </p>
                <p>
                   El 17 de septiembre de 1997, el dial de Valencia cambió para siempre. Con una visión clara y un amor inquebrantable por la radio, se encendieron los transmisores de lo que hoy es la emisora número uno del centro de Venezuela.
@@ -116,7 +118,7 @@ export default function QuienesSomosPage() {
       </section>
 
       <div className="pb-24 flex flex-col items-center gap-8">
-         <img src="/logos-bonchona/92.png" className="h-12 opacity-20 grayscale" alt="Logo" />
+         <Image src="/logos-bonchona/92.png" className="h-12 w-auto opacity-20 grayscale object-contain" alt="Logo" width={48} height={48} />
          <p className="text-[10px] text-zinc-700 font-black uppercase tracking-[0.5em]">Radio Bonchona 107.1 FM - Sintonía Total</p>
       </div>
     </div>

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import Image from "next/image";
 import "./globals.css";
 import GlobalPlayer from "@/components/GlobalPlayer";
 
@@ -48,7 +48,7 @@ export default function RootLayout({
            <Link href="/nosotros" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold text-zinc-500 uppercase tracking-widest">Nuestra Historia</Link>
            
            <div className="absolute bottom-12 flex flex-col items-center gap-4">
-              <img src="/logos-bonchona/92.png" alt="Logo" className="h-12 opacity-50" />
+              <Image src="/logos-bonchona/92.png" alt="Logo" className="h-12 w-auto opacity-50 object-contain" width={48} height={48} />
               <p className="text-[10px] text-zinc-600 font-black uppercase tracking-[0.5em]">Sintonía Total</p>
            </div>
         </div>
@@ -57,7 +57,7 @@ export default function RootLayout({
         <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-white/5">
           <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <img src="/logos-bonchona/92.png" alt="Bonchona" className="h-10 object-contain" />
+              <Image src="/logos-bonchona/92.png" alt="Bonchona" className="h-10 w-auto object-contain" width={40} height={40} />
             </Link>
 
             {/* Desktop Menu */}
@@ -98,10 +98,12 @@ export default function RootLayout({
           </div>
           <div className="w-14 h-14 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(37,211,102,0.4)] hover:scale-110 hover:rotate-12 transition-all duration-500 relative">
             <div className="absolute inset-0 bg-[#25D366] rounded-full animate-ping opacity-20"></div>
-            <img 
+            <Image 
               src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" 
               alt="WhatsApp" 
               className="w-8 h-8 brightness-0 invert" 
+              width={32}
+              height={32}
             />
           </div>
         </a>

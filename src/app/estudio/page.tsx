@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 
 const SERVICES = [
   {
@@ -86,10 +87,12 @@ export default function EstudioPage() {
          </div>
          <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-brand to-orange-600 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-            <img 
+            <Image 
                src="https://images.unsplash.com/photo-1590602847861-f357a9332bbc?q=80&w=1974&auto=format&fit=crop" 
                alt="Studio Setup" 
-               className="relative rounded-[2rem] border border-white/5 shadow-2xl transition-transform duration-700 group-hover:scale-[1.02]"
+               className="relative rounded-[2rem] border border-white/5 shadow-2xl transition-transform duration-700 group-hover:scale-[1.02] object-cover"
+               width={800}
+               height={600}
             />
          </div>
       </section>
@@ -154,7 +157,7 @@ export default function EstudioPage() {
       </section>
 
       <div className="pb-24">
-         <img src="/logos-bonchona/92.png" className="h-12 opacity-20 grayscale" alt="Logo" />
+         <Image src="/logos-bonchona/92.png" className="h-12 w-auto opacity-20 grayscale object-contain" alt="Logo" width={48} height={48} />
       </div>
     </div>
   );
