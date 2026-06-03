@@ -245,20 +245,20 @@ export default function GlobalPlayer() {
 
   if (!mounted) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 h-24 bg-black/95 border-t border-white/10 z-50 flex items-center justify-between px-6 md:px-12 backdrop-blur-xl">
-        <div className="flex items-center gap-4 w-1/3">
-          <div className="w-14 h-14 bg-zinc-900 rounded-xl border border-white/5 animate-pulse"></div>
+      <div className="fixed bottom-0 left-0 right-0 h-20 md:h-24 bg-black/95 border-t border-white/10 z-50 flex items-center justify-between px-4 md:px-12 backdrop-blur-xl">
+        <div className="flex items-center gap-4 w-1/2 md:w-1/3">
+          <div className="w-10 h-10 md:w-14 md:h-14 bg-zinc-900 rounded-xl border border-white/5 animate-pulse"></div>
         </div>
-        <div className="flex justify-center w-1/3">
-           <div className="w-12 h-12 bg-brand/20 rounded-full animate-pulse"></div>
+        <div className="flex justify-center w-auto md:w-1/3">
+           <div className="w-10 h-10 md:w-12 md:h-12 bg-bonchona-red/20 rounded-full animate-pulse"></div>
         </div>
-        <div className="w-1/3"></div>
+        <div className="hidden md:block md:w-1/3"></div>
       </div>
     );
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-24 bg-black/95 border-t border-white/10 z-50 flex items-center justify-between px-6 md:px-12 backdrop-blur-xl" suppressHydrationWarning>
+    <div className="fixed bottom-0 left-0 right-0 h-20 md:h-24 bg-black/95 border-t border-white/10 z-50 flex items-center justify-between px-4 md:px-12 backdrop-blur-xl transition-all duration-500" suppressHydrationWarning>
       <audio 
         ref={audioRef} 
         onEnded={handleEnded}
@@ -267,48 +267,51 @@ export default function GlobalPlayer() {
         preload="auto"
       />
 
-      <div className="flex items-center gap-4 w-1/3">
-        <div className="relative w-14 h-14 bg-zinc-900 rounded-xl overflow-hidden border border-white/5 flex items-center justify-center">
-          <Image src="/logos-bonchona/92.png" className="w-10 h-10 object-contain" alt="Logo" width={40} height={40} />
-          {isPlaying && <div className="absolute inset-0 bg-brand/10 animate-pulse"></div>}
+      {/* Info Group */}
+      <div className="flex items-center gap-3 md:gap-4 w-1/2 md:w-1/3">
+        <div className="relative flex-shrink-0 w-10 h-10 md:w-14 md:h-14 bg-zinc-900 rounded-xl overflow-hidden border border-white/5 flex items-center justify-center">
+          <Image src="/logos-bonchona/92.png" className="w-7 h-7 md:w-10 md:h-10 object-contain" alt="Logo" width={40} height={40} />
+          {isPlaying && <div className="absolute inset-0 bg-bonchona-red/10 animate-pulse"></div>}
         </div>
-        <div className="hidden sm:block">
-          <p className="text-white font-bold text-sm tracking-tight truncate">
+        <div className="min-w-0">
+          <p className="text-white font-bold text-xs md:text-sm tracking-tight truncate">
             {status === "playing_preroll" ? "Publicidad Premium" : "Radio Bonchona 107.1"}
           </p>
-          <p className="text-brand text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">
+          <p className="text-bonchona-red text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] animate-pulse truncate">
             {status === "playing_preroll" ? "Spot publicitario" : "Sintonía Total"}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center justify-center w-1/3 gap-4 md:gap-8">
-        <div className="hidden sm:block flex-1 h-12 scale-x-[-1]">
+      {/* Control Group */}
+      <div className="flex items-center justify-center w-auto md:w-1/3 gap-4 md:gap-8">
+        <div className="hidden lg:block flex-1 h-12 scale-x-[-1]">
           <canvas ref={canvasLeftRef} width={300} height={60} className="w-full opacity-80 h-10 md:h-12" />
         </div>
         
         <button 
           onClick={togglePlay}
-          className="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-brand text-white rounded-full hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,79,0,0.3)] active:scale-95 z-10"
+          className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 flex items-center justify-center bg-bonchona-red text-white rounded-full hover:scale-110 transition-transform shadow-[0_0_20px_rgba(232,75,50,0.3)] active:scale-95 z-10"
         >
           {isPlaying ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
           ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="ml-1"><polygon points="5 3 19 12 5 21 5 3" /></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="ml-1"><polygon points="5 3 19 12 5 21 5 3" /></svg>
           )}
         </button>
 
-        <div className="hidden sm:block flex-1 h-12">
+        <div className="hidden lg:block flex-1 h-12">
           <canvas ref={canvasRightRef} width={300} height={60} className="w-full opacity-80 h-10 md:h-12" />
         </div>
       </div>
 
-      <div className="flex items-center justify-end w-1/3 gap-4">
+      {/* Action Group */}
+      <div className="hidden sm:flex items-center justify-end w-1/3 gap-4">
         <a 
           href="https://wa.me/584144001071?text=Hola%20Bonchona!%20Me%20gustar%C3%ADa%20pedir%20esta%20canci%C3%B3n:" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="hidden lg:flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-brand/20 border border-white/10 rounded-full transition-all group"
+          className="hidden xl:flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-bonchona-red/20 border border-white/10 rounded-full transition-all group"
         >
           <Image 
             src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" 
@@ -321,14 +324,22 @@ export default function GlobalPlayer() {
         </a>
 
         <div className="hidden md:flex items-center gap-2 group">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-zinc-500 group-hover:text-brand transition-colors"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>
-          <input type="range" min="0" max="1" step="0.01" value={volume} onChange={handleVolume} className="w-16 h-1 accent-brand appearance-none bg-zinc-800 rounded-full cursor-pointer" />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-zinc-500 group-hover:text-bonchona-red transition-colors"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>
+          <input type="range" min="0" max="1" step="0.01" value={volume} onChange={handleVolume} className="w-16 h-1 accent-bonchona-red appearance-none bg-zinc-800 rounded-full cursor-pointer" />
         </div>
-        <div className="flex items-center gap-1.5 bg-zinc-900/50 px-3 py-1 rounded-full border border-white/5">
-          <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-brand animate-ping' : 'bg-zinc-700'}`} />
+        
+        <div className="flex items-center gap-1.5 bg-zinc-900/50 px-3 py-1.5 rounded-full border border-white/5">
+          <div className={`w-1.5 h-1.5 rounded-full ${isPlaying ? 'bg-bonchona-red animate-ping' : 'bg-zinc-700'}`} />
           <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest truncate">Live</span>
         </div>
       </div>
+
+      {/* Mobile Live Indicator (visible only on xs) */}
+      <div className="flex sm:hidden items-center gap-1.5 bg-zinc-900/50 px-2.5 py-1 rounded-full border border-white/5">
+        <div className={`w-1 h-1 rounded-full ${isPlaying ? 'bg-bonchona-red animate-ping' : 'bg-zinc-700'}`} />
+        <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">Live</span>
+      </div>
     </div>
+
   );
 }
