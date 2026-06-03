@@ -49,21 +49,33 @@ export default function GlobalPlayer() {
   // Intervalo de metadatos (cada 15 segundos)
   useEffect(() => {
     if (isPlaying && status === "playing_live") {
-      fetchMetadata();
-      const interval = setInterval(fetchMetadata, 15000);
-      return () => clearInterval(interval);
+      // Usamos un pequeño delay para evitar el warning de setState en el efecto
+      const timeoutId = setTimeout(() => {
+        fetchMetadata();
+      }, 0);
+      
+      const intervalId = setInterval(fetchMetadata, 15000);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        clearInterval(intervalId);
+      };
     }
   }, [isPlaying, status, fetchMetadata]);
 
   // Intervalo de alternancia de visualización (cada 5 segundos)
   useEffect(() => {
     if (isPlaying && status === "playing_live" && metadata) {
-      const interval = setInterval(() => {
-        setDisplayMode(prev => prev === "tagline" ? "song" : "tagline");
+      const intervalId = setInterval(() => {
+        setDisplayMode(prev => (prev === "tagline" ? "song" : "tagline"));
       }, 5000);
-      return () => clearInterval(interval);
+      return () => clearInterval(intervalId);
     } else {
-      setDisplayMode("tagline");
+      // Usamos un pequeño delay para evitar el warning de setState en el efecto
+      const timeoutId = setTimeout(() => {
+        setDisplayMode("tagline");
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [isPlaying, status, metadata]);
   const canvasRightRef = useRef<HTMLCanvasElement | null>(null);
