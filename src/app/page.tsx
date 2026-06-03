@@ -53,7 +53,7 @@ export default function Home() {
       <div className="fixed inset-0 bg-mesh-brand pointer-events-none opacity-40 z-0"></div>
 
       {/* Hero Section - Asymmetric Premium */}
-      <section className="relative w-full min-h-[100dvh] flex items-center justify-center px-4 sm:px-6 lg:px-24 py-20 sm:py-24 z-10">
+      <section className="relative w-full min-h-[calc(100dvh-4rem)] sm:min-h-[calc(100dvh-5rem)] flex items-center justify-center px-4 sm:px-6 lg:px-24 pb-20 md:pb-24 z-10">
         <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           
           <motion.div 

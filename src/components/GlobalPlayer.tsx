@@ -2,18 +2,70 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { motion, AnimatePresence } from "motion/react";
 
 // URLs
 const PREROLL_URL = "https://cdn.pixabay.com/audio/2022/10/14/audio_9939f77042.mp3"; 
 const ICECAST_URL = "https://radio.20favoritas.com:8443/stream"; 
+const METADATA_URL = "https://radio.20favoritas.com:8443/status-json.xsl";
 
 export default function GlobalPlayer() {
   const [mounted, setMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [status, setStatus] = useState<"idle" | "playing_preroll" | "playing_live">("idle");
   const [volume, setVolume] = useState(1);
+  const [metadata, setMetadata] = useState<string>("");
+  const [displayMode, setDisplayMode] = useState<"tagline" | "song">("tagline");
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // --- Metadata Fetching ---
+
+  const fetchMetadata = useCallback(async () => {
+    try {
+      const response = await fetch(METADATA_URL);
+      const data = await response.json();
+      
+      // Intentamos extraer el título de la canción del JSON de Icecast
+      // La estructura exacta depende de la configuración de Icecast, normalmente:
+      // icestats.source[0].title o icestats.source.title
+      const source = data.icestats?.source;
+      let currentTitle = "";
+      
+      if (Array.isArray(source)) {
+        currentTitle = source[0]?.title || "";
+      } else if (source) {
+        currentTitle = source.title || "";
+      }
+
+      if (currentTitle) {
+        setMetadata(currentTitle);
+      }
+    } catch (e) {
+      console.warn("Could not fetch metadata:", e);
+    }
+  }, []);
+
+  // Intervalo de metadatos (cada 15 segundos)
+  useEffect(() => {
+    if (isPlaying && status === "playing_live") {
+      fetchMetadata();
+      const interval = setInterval(fetchMetadata, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [isPlaying, status, fetchMetadata]);
+
+  // Intervalo de alternancia de visualización (cada 5 segundos)
+  useEffect(() => {
+    if (isPlaying && status === "playing_live" && metadata) {
+      const interval = setInterval(() => {
+        setDisplayMode(prev => prev === "tagline" ? "song" : "tagline");
+      }, 5000);
+      return () => clearInterval(interval);
+    } else {
+      setDisplayMode("tagline");
+    }
+  }, [isPlaying, status, metadata]);
   const canvasRightRef = useRef<HTMLCanvasElement | null>(null);
   const canvasLeftRef = useRef<HTMLCanvasElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -273,13 +325,47 @@ export default function GlobalPlayer() {
           <Image src="/logos-bonchona/92.png" className="w-7 h-7 md:w-10 md:h-10 object-contain" alt="Logo" width={40} height={40} />
           {isPlaying && <div className="absolute inset-0 bg-bonchona-red/10 animate-pulse"></div>}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1 overflow-hidden">
           <p className="text-white font-bold text-xs md:text-sm tracking-tight truncate">
             {status === "playing_preroll" ? "Publicidad Premium" : "Radio Bonchona 107.1"}
           </p>
-          <p className="text-bonchona-red text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] animate-pulse truncate">
-            {status === "playing_preroll" ? "Spot publicitario" : "Sintonía Total"}
-          </p>
+          <div className="h-4 relative overflow-hidden">
+            <AnimatePresence mode="wait">
+              {status === "playing_preroll" ? (
+                <motion.p 
+                  key="preroll"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="text-bonchona-red text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] animate-pulse truncate"
+                >
+                  Spot publicitario
+                </motion.p>
+              ) : displayMode === "tagline" || !metadata ? (
+                <motion.p 
+                  key="tagline"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  className="text-bonchona-red text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] animate-pulse truncate"
+                >
+                  Sintonía Total!
+                </motion.p>
+              ) : (
+                <motion.p 
+                  key="metadata"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  className="text-white/70 text-[9px] md:text-[10px] font-bold uppercase tracking-widest truncate italic"
+                >
+                  {metadata}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
