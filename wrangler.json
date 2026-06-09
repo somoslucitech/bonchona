@@ -10,13 +10,13 @@
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "bonchona_kv_namespace"
+      "id": "8a5fc6f211b3460ca4b413c9324c0fa3"
     }
   ],
   "r2_buckets": [
     {
       "binding": "PREROLL_BUCKET",
-      "bucket_name": "bonchona-preroll-bucket"
+      "bucket_name": "bonchona-preroll"
     }
   ],
   "observability": {
