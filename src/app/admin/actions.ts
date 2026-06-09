@@ -22,8 +22,40 @@ async function verifySession(): Promise<boolean> {
   return session?.value === "authenticated";
 }
 
-export async function loginAdminAction(password: string) {
+export async function loginAdminAction(password: string, turnstileToken?: string) {
   const env = getCloudflareEnv();
+  
+  // Turnstile Verification (Only if configured in environment variables)
+  const turnstileSecret = env?.TURNSTILE_SECRET_KEY || process.env.TURNSTILE_SECRET_KEY;
+  if (turnstileSecret) {
+    if (!turnstileToken) {
+      return { success: false, error: "Verificación de seguridad anti-bot requerida." };
+    }
+    
+    const verifyUrl = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    const body = new URLSearchParams({
+      secret: turnstileSecret,
+      response: turnstileToken,
+    });
+    
+    try {
+      const res = await fetch(verifyUrl, {
+        method: "POST",
+        body: body,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
+      const data = (await res.json()) as { success: boolean };
+      if (!data.success) {
+        return { success: false, error: "La validación anti-bot (Turnstile) falló. Intenta de nuevo." };
+      }
+    } catch (e) {
+      console.error("Turnstile error:", e);
+      return { success: false, error: "Error al verificar la seguridad anti-bot." };
+    }
+  }
+
   const correctPassword = env?.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || "BonchonaAdmin2026";
   
   if (password === correctPassword) {
@@ -42,7 +74,12 @@ export async function loginAdminAction(password: string) {
 
 export async function logoutAdminAction() {
   const cookieStore = await cookies();
-  cookieStore.delete("admin_session");
+  cookieStore.set("admin_session", "", {
+    httpOnly: true,
+    secure: true,
+    path: "/admin",
+    maxAge: 0
+  });
   return { success: true };
 }
 
@@ -126,3 +163,63 @@ export async function uploadPrerollAction(formData: FormData) {
     return { success: false, error: errorMsg };
   }
 }
+
+export async function uploadProgramImageAction(formData: FormData) {
+  // Security check: Block unauthorized file uploads
+  const isAuthenticated = await verifySession();
+  if (!isAuthenticated) {
+    console.warn("Block unauthorized uploadProgramImageAction call");
+    return { success: false, error: "Acceso no autorizado." };
+  }
+
+  try {
+    const file = formData.get("image") as File;
+    if (!file || file.size === 0) return { success: false, error: "No se seleccionó ningún archivo." };
+
+    // Sanitize filename to avoid weird character issues in key name
+    const sanitizedName = file.name
+      .toLowerCase()
+      .replace(/[^a-z0-9_.-]+/g, "-") // Keep letters, numbers, underscore, dot, hyphen
+      .replace(/(^-|-$)+/g, ""); // Remove trailing hyphens
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Save to Cloudflare R2 in production
+    const env = getCloudflareEnv();
+    if (env?.IMAGES_BUCKET) {
+      await env.IMAGES_BUCKET.put(sanitizedName, buffer, {
+        httpMetadata: { contentType: file.type || "image/png" }
+      });
+      return { success: true, url: `/api/images/${sanitizedName}` };
+    }
+
+    // Save to local file in local development (Node runtime)
+    if (typeof window === 'undefined') {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const localDir = path.join(process.cwd(), 'public', 'programas');
+        
+        // Ensure directory exists
+        if (!fs.existsSync(localDir)) {
+          fs.mkdirSync(localDir, { recursive: true });
+        }
+        
+        const localPath = path.join(localDir, sanitizedName);
+        fs.writeFileSync(localPath, buffer);
+        console.log("Saved local program image fallback to:", localPath);
+        return { success: true, url: `/programas/${sanitizedName}`, localDev: true };
+      } catch (e) {
+        console.error("Local image file save error:", e);
+      }
+    }
+    
+    return { success: true, url: `/logos-bonchona/92.png`, warning: "Guardado en modo simulación (R2 no disponible)" };
+  } catch (e: unknown) {
+    console.error("Image upload error:", e);
+    const errorMsg = e instanceof Error ? e.message : "Error al subir la imagen.";
+    return { success: false, error: errorMsg };
+  }
+}
+

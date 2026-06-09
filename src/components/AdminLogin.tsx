@@ -1,22 +1,46 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Script from 'next/script';
 import { loginAdminAction } from '@/app/admin/actions';
 
 export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Set up Turnstile success callback on browser window object
+    if (typeof window !== 'undefined') {
+      (window as any).onTurnstileSuccess = (token: string) => {
+        setTurnstileToken(token);
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).onTurnstileSuccess;
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password) return;
 
+    // Check Turnstile validation if site key is configured
+    const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    if (siteKey && !turnstileToken) {
+      setError("Por favor, completa la verificación anti-bot.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
-    const result = await loginAdminAction(password);
+    const result = await loginAdminAction(password, turnstileToken || undefined);
     setLoading(false);
 
     if (result.success) {
@@ -24,6 +48,11 @@ export default function AdminLogin() {
       window.location.reload();
     } else {
       setError(result.error || "Clave incorrecta.");
+      // Reset Turnstile widget on failure if it exists
+      if (typeof window !== 'undefined' && (window as any).turnstile) {
+        (window as any).turnstile.reset();
+        setTurnstileToken(null);
+      }
     }
   };
 
@@ -68,6 +97,21 @@ export default function AdminLogin() {
                 disabled={loading}
               />
             </div>
+
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center my-2">
+                <div 
+                  className="cf-turnstile" 
+                  data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  data-callback="onTurnstileSuccess"
+                  data-theme="dark"
+                ></div>
+                <Script
+                  src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+                  strategy="afterInteractive"
+                />
+              </div>
+            )}
 
             {error && (
               <div className="p-4 rounded-xl bg-bonchona-red/10 border border-bonchona-red/20 text-center">

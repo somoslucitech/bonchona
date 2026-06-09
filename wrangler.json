@@ -17,6 +17,10 @@
     {
       "binding": "PREROLL_BUCKET",
       "bucket_name": "bonchona-preroll"
+    },
+    {
+      "binding": "IMAGES_BUCKET",
+      "bucket_name": "bonchona-images"
     }
   ],
   "observability": {

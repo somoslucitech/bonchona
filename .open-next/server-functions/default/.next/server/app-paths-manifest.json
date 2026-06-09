@@ -1,4 +1,5 @@
 {
+  "/api/images/[key]/route": "app/api/images/[key]/route.js",
   "/api/preroll/route": "app/api/preroll/route.js",
   "/_not-found/page": "app/_not-found/page.js",
   "/estudio/page": "app/estudio/page.js",

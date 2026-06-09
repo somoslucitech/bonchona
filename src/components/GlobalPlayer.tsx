@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
+import * as gtag from "@/lib/gtag";
 
 // URLs
 const PREROLL_URL = "/api/preroll"; 
@@ -219,11 +220,20 @@ export default function GlobalPlayer() {
     const audio = audioRef.current;
     if (!audio) return;
     
+    // Check if we were playing the preroll before changing src
+    const wasPreroll = audio.src.includes("/api/preroll");
+    
     setStatus("playing_live");
     audio.src = ICECAST_URL;
     try {
       await audio.play();
       setIsPlaying(true);
+      
+      // GA4 event tracking
+      gtag.event({ action: "stream_start", category: "Audio" });
+      if (wasPreroll) {
+        gtag.event({ action: "preroll_complete", category: "Audio" });
+      }
     } catch (e) {
       console.error("Live play error:", e);
     }
@@ -246,6 +256,21 @@ export default function GlobalPlayer() {
       cancelAnimationFrame(animationRef.current);
     }
   }, [isPlaying, mounted, drawWave]);
+
+  // Send active listening heartbeat to GA4 every 60 seconds (Time Spent Listening tracking)
+  useEffect(() => {
+    if (isPlaying && status === "playing_live") {
+      const intervalId = setInterval(() => {
+        gtag.event({
+          action: "stream_heartbeat",
+          category: "Audio",
+          label: "Active Listening",
+          value: 1 // Represents 1 minute of active listening
+        });
+      }, 60000);
+      return () => clearInterval(intervalId);
+    }
+  }, [isPlaying, status]);
 
   const handleEnded = useCallback(() => {
     if (status === "playing_preroll") {
@@ -278,11 +303,15 @@ export default function GlobalPlayer() {
       if (status === "idle") {
         setStatus("playing_preroll");
         audio.src = PREROLL_URL;
+        gtag.event({ action: "preroll_start", category: "Audio" });
       }
       
       try {
         await audio.play();
         setIsPlaying(true);
+        if (status === "playing_live") {
+          gtag.event({ action: "stream_start", category: "Audio" });
+        }
       } catch {
         // Error silencioso: si falla el play (por ejemplo preroll roto), saltamos al live
         playLive();
@@ -290,6 +319,11 @@ export default function GlobalPlayer() {
     } else {
       audio.pause();
       setIsPlaying(false);
+      if (status === "playing_live") {
+        gtag.event({ action: "stream_pause", category: "Audio" });
+      } else if (status === "playing_preroll") {
+        gtag.event({ action: "preroll_pause", category: "Audio" });
+      }
     }
   }, [isPlaying, status, initAudioContext, playLive]);
 
