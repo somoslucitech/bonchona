@@ -7,6 +7,18 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "bonchona_kv_namespace"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "PREROLL_BUCKET",
+      "bucket_name": "bonchona-preroll-bucket"
+    }
+  ],
   "observability": {
     "enabled": true
   }

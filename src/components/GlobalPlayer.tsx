@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 
 // URLs
-const PREROLL_URL = "https://cdn.pixabay.com/audio/2022/10/14/audio_9939f77042.mp3"; 
+const PREROLL_URL = "/api/preroll"; 
 const ICECAST_URL = "https://radio.20favoritas.com:8443/stream"; 
 const METADATA_URL = "https://radio.20favoritas.com:8443/status-json.xsl";
 
