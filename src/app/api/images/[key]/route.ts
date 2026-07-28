@@ -19,7 +19,9 @@ export async function GET(
       const object = await bucket.get(decodedKey);
       if (object) {
         const headers = new Headers();
-        object.writeHttpMetadata(headers);
+        // R2's Headers/ReadableStream types come from the Workers runtime, not
+        // lib.dom's — both describe the same real objects, so a cast is safe here.
+        object.writeHttpMetadata(headers as unknown as Parameters<typeof object.writeHttpMetadata>[0]);
         headers.set("etag", object.httpEtag);
         
         // Infer content type from file extension
@@ -41,7 +43,7 @@ export async function GET(
         // Cache images in the browser for 1 week to optimize performance and reduce R2 operations
         headers.set("Cache-Control", "public, max-age=604800, immutable");
         
-        return new Response(object.body, {
+        return new Response(object.body as unknown as BodyInit, {
           headers,
         });
       }

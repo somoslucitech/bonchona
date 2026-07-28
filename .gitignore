@@ -32,12 +32,19 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.dev.vars
+
+# local dev fallback DB (auto-seeded when Cloudflare bindings aren't available)
+local_db.json
 
 # vercel
 .vercel
 
 # open-next
 .open-next
+
+# wrangler local state (D1/KV/R2 simulators, sessions, etc.)
+.wrangler
 
 # typescript
 *.tsbuildinfo

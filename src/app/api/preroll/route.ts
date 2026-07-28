@@ -9,13 +9,15 @@ export async function GET() {
       const object = await bucket.get("preroll.mp3");
       if (object) {
         const headers = new Headers();
-        object.writeHttpMetadata(headers);
+        // R2's Headers/ReadableStream types come from the Workers runtime, not
+        // lib.dom's — both describe the same real objects, so a cast is safe here.
+        object.writeHttpMetadata(headers as unknown as Parameters<typeof object.writeHttpMetadata>[0]);
         headers.set("etag", object.httpEtag);
         headers.set("Content-Type", "audio/mpeg");
         // Avoid caching the dynamic preroll to ensure updates are immediate
         headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
-        
-        return new Response(object.body, {
+
+        return new Response(object.body as unknown as BodyInit, {
           headers,
         });
       }

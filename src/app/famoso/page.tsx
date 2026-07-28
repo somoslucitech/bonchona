@@ -1,19 +1,23 @@
-import { getPrograms, getRotativeRates } from "@/lib/db";
+import { getPrograms, getRotativeRates, getSiteSettings } from "@/lib/db";
 import FamosoClient from "@/components/FamosoClient";
 import { headers } from "next/headers";
 
-// Force Next.js to render this route dynamically so it always pulls fresh data from KV
+// Force Next.js to render this route dynamically so it always pulls fresh data
 export const dynamic = "force-dynamic";
 
 export default async function FamosoPage() {
   await headers(); // Force dynamic execution on every request
-  const rotativeRates = await getRotativeRates();
-  const programs = await getPrograms();
+  const [rotativeRates, programs, settings] = await Promise.all([
+    getRotativeRates(),
+    getPrograms(),
+    getSiteSettings(),
+  ]);
 
   return (
-    <FamosoClient 
-      initialRotativeRates={rotativeRates} 
-      initialPrograms={programs} 
+    <FamosoClient
+      initialRotativeRates={rotativeRates}
+      initialPrograms={programs}
+      whatsappAdvertising={settings.whatsappAdvertising}
     />
   );
 }

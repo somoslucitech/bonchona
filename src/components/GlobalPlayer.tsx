@@ -6,11 +6,15 @@ import { motion, AnimatePresence } from "motion/react";
 import * as gtag from "@/lib/gtag";
 
 // URLs
-const PREROLL_URL = "/api/preroll"; 
-const ICECAST_URL = "https://radio.20favoritas.com:8443/stream"; 
-const METADATA_URL = "https://radio.20favoritas.com:8443/status-json.xsl";
+const PREROLL_URL = "/api/preroll";
 
-export default function GlobalPlayer() {
+interface GlobalPlayerProps {
+  streamUrl: string;
+  metadataUrl: string;
+  songRequestWhatsapp: string;
+}
+
+export default function GlobalPlayer({ streamUrl, metadataUrl, songRequestWhatsapp }: GlobalPlayerProps) {
   const [mounted, setMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [status, setStatus] = useState<"idle" | "playing_preroll" | "playing_live">("idle");
@@ -24,7 +28,7 @@ export default function GlobalPlayer() {
 
   const fetchMetadata = useCallback(async () => {
     try {
-      const response = await fetch(METADATA_URL);
+      const response = await fetch(metadataUrl);
       const data = await response.json();
       
       // Intentamos extraer el título de la canción del JSON de Icecast
@@ -45,7 +49,7 @@ export default function GlobalPlayer() {
     } catch (e) {
       console.warn("Could not fetch metadata:", e);
     }
-  }, []);
+  }, [metadataUrl]);
 
   // Intervalo de metadatos (cada 15 segundos)
   useEffect(() => {
@@ -224,7 +228,7 @@ export default function GlobalPlayer() {
     const wasPreroll = audio.src.includes("/api/preroll");
     
     setStatus("playing_live");
-    audio.src = ICECAST_URL;
+    audio.src = streamUrl;
     try {
       await audio.play();
       setIsPlaying(true);
@@ -237,7 +241,7 @@ export default function GlobalPlayer() {
     } catch (e) {
       console.error("Live play error:", e);
     }
-  }, []);
+  }, [streamUrl]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -439,9 +443,9 @@ export default function GlobalPlayer() {
 
       {/* Action Group */}
       <div className="hidden sm:flex items-center justify-end w-1/3 gap-4">
-        <a 
-          href="https://wa.me/584144001071?text=Hola%20Bonchona!%20Me%20gustar%C3%ADa%20pedir%20esta%20canci%C3%B3n:" 
-          target="_blank" 
+        <a
+          href={`https://wa.me/${songRequestWhatsapp}?text=Hola%20Bonchona!%20Me%20gustar%C3%ADa%20pedir%20esta%20canci%C3%B3n:`}
+          target="_blank"
           rel="noopener noreferrer"
           className="hidden xl:flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-bonchona-red/20 border border-white/10 rounded-full transition-all group"
         >

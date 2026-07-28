@@ -9,9 +9,10 @@ import { Program, RotativeRate } from '@/lib/db';
 interface FamosoClientProps {
   initialRotativeRates: RotativeRate[];
   initialPrograms: Program[];
+  whatsappAdvertising: string;
 }
 
-export default function FamosoClient({ initialRotativeRates, initialPrograms }: FamosoClientProps) {
+export default function FamosoClient({ initialRotativeRates, initialPrograms, whatsappAdvertising }: FamosoClientProps) {
   const [activeRotative, setActiveRotative] = useState(0);
 
   const getAccent = (id: string) => {
@@ -117,8 +118,8 @@ export default function FamosoClient({ initialRotativeRates, initialPrograms }: 
                   <span className="text-3xl sm:text-4xl font-black text-white leading-none">€{d.price}</span>
                   <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Inversión Mensual</span>
                 </div>
-                <a 
-                  href={`https://wa.me/584244001367?text=Hola%20Bonchona!%20Me%20interesa%20la%20publicidad%20rotativa%20de%20${d.time}%20con%20frecuencia%20de%20${initialRotativeRates[activeRotative].freq}.`}
+                <a
+                  href={`https://wa.me/${whatsappAdvertising}?text=Hola%20Bonchona!%20Me%20interesa%20la%20publicidad%20rotativa%20de%20${d.time}%20con%20frecuencia%20de%20${initialRotativeRates[activeRotative].freq}.`}
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="w-full py-4 sm:py-5 glass border-white/10 group-hover:bg-bonchona-red group-hover:border-transparent group-hover:text-white text-zinc-400 font-black rounded-2xl transition-all uppercase tracking-widest text-[10px]"
@@ -186,10 +187,10 @@ export default function FamosoClient({ initialRotativeRates, initialPrograms }: 
                       <span className="text-3xl sm:text-4xl font-black text-white italic tracking-tighter">€{prog.price}</span>
                       <span className="text-[8px] sm:text-[9px] font-bold text-zinc-500 uppercase tracking-[0.3em] sm:tracking-[0.4em]">Inversión Mensual</span>
                     </div>
-                    <motion.a 
+                    <motion.a
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      href={`https://wa.me/584244001367?text=Hola%20Bonchona!%20Me%20interesa%20la%20publicidad%20en%20vivo%20en%20el%20programa%20${prog.title}.`}
+                      href={`https://wa.me/${whatsappAdvertising}?text=Hola%20Bonchona!%20Me%20interesa%20la%20publicidad%20en%20vivo%20en%20el%20programa%20${prog.title}.`}
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="px-6 sm:px-10 py-4 sm:py-5 bg-bonchona-red text-white font-black rounded-full shadow-[0_15px_30px_rgba(232,75,50,0.25)] uppercase tracking-[0.2em] text-[9px] sm:text-[10px]"

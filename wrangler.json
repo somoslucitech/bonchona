@@ -1,6 +1,6 @@
 {
   "main": ".open-next/worker.js",
-  "name": "bonchona-radio",
+  "name": "bonchona",
   "compatibility_date": "2025-02-01",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
@@ -23,6 +23,17 @@
       "bucket_name": "bonchona-images"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bonchona-db",
+      "database_id": "fb82b1b8-a34f-4b11-98f9-c31f46dd8ff1"
+    }
+  ],
+  "vars": {
+    "EMAIL_FROM": "Bonchona Radio <no-reply@bonchonaradio.com>",
+    "GOOGLE_CLIENT_ID": "676560544113-iqduj9vf742acpga6tnn7vh8f1oo3rcq.apps.googleusercontent.com"
+  },
   "observability": {
     "enabled": true
   }

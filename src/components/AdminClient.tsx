@@ -2,17 +2,60 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Program, RotativeRate } from '@/lib/db';
-import { saveProgramsAction, saveRatesAction, uploadPrerollAction, logoutAdminAction, uploadProgramImageAction } from '@/app/admin/actions';
+import { Program, RotativeRate, SiteSettings } from '@/lib/db';
+import type { User, UserRole } from '@/lib/users';
+import type { SessionRow } from '@/lib/sessions';
+import type { Invite } from '@/lib/invites';
+import {
+  saveProgramsAction,
+  saveRatesAction,
+  saveSettingsAction,
+  uploadPrerollAction,
+  logoutAdminAction,
+  uploadProgramImageAction,
+  createInviteAction,
+  resendInviteAction,
+  revokeInviteAction,
+  revokeUserAction,
+  revokeSessionAction,
+} from '@/app/admin/actions';
+
+interface UserWithSessions extends User {
+  sessions: SessionRow[];
+}
+
+interface UsersData {
+  success: boolean;
+  error?: string;
+  users: UserWithSessions[];
+  invites: Invite[];
+  currentUserId?: string;
+}
 
 interface AdminClientProps {
   initialPrograms: Program[];
   initialRotativeRates: RotativeRate[];
+  initialSettings: SiteSettings;
+  role: UserRole;
+  email: string;
+  initialUsersData: UsersData | null;
 }
 
-export default function AdminClient({ initialPrograms, initialRotativeRates }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<'programs' | 'rates' | 'preroll' | 'analytics'>('programs');
-  
+function formatDate(ts: number | null): string {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+export default function AdminClient({
+  initialPrograms,
+  initialRotativeRates,
+  initialSettings,
+  role,
+  email,
+  initialUsersData,
+}: AdminClientProps) {
+  const [activeTab, setActiveTab] = useState<'programs' | 'rates' | 'settings' | 'analytics' | 'usuarios'>('programs');
+
   // Programs State
   const [programs, setPrograms] = useState<Program[]>(initialPrograms);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
@@ -30,6 +73,15 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
   // Rates State
   const [rates, setRates] = useState<RotativeRate[]>(initialRotativeRates);
 
+  // Site Settings State (WhatsApp numbers + stream URLs)
+  const [settingsForm, setSettingsForm] = useState({
+    whatsappSongRequest: initialSettings.whatsappSongRequest,
+    whatsappAdvertising: initialSettings.whatsappAdvertising,
+    streamUrl: initialSettings.streamUrl,
+    metadataUrl: initialSettings.streamMetadataUrl,
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
+
   // File Upload State
   const [prerollFile, setPrerollFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -40,6 +92,14 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
 
   // Program Image Upload State
   const [imageUploading, setImageUploading] = useState(false);
+
+  // Users tab state (a full reload re-fetches this from the server after any
+  // mutation — see refreshUsersData — so no local setter is needed here)
+  const usersData = initialUsersData;
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<UserRole>('editor');
+  const [invitingUser, setInvitingUser] = useState(false);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   const showStatus = (text: string, type: 'success' | 'error' = 'success') => {
     setStatusMsg({ text, type });
@@ -121,11 +181,11 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
         richText: programForm.richText || '',
         price: Number(programForm.price) || 0,
       };
-      
+
       updatedPrograms = [...programs, newProg];
     } else if (editingProgram) {
-      updatedPrograms = programs.map(p => 
-        p.id === editingProgram.id 
+      updatedPrograms = programs.map(p =>
+        p.id === editingProgram.id
           ? {
               ...p,
               title: programForm.title || p.title,
@@ -153,7 +213,7 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
 
   const handleDeleteProgram = async (id: string) => {
     if (!confirm("¿Estás seguro de que deseas eliminar este programa?")) return;
-    
+
     const updatedPrograms = programs.filter(p => p.id !== id);
     const ok = await saveProgramsAction(updatedPrograms);
     if (ok) {
@@ -180,6 +240,19 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
     }
   };
 
+  // --- Settings Handlers ---
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSettings(true);
+    const ok = await saveSettingsAction(settingsForm);
+    setSavingSettings(false);
+    if (ok) {
+      showStatus("Configuración guardada con éxito.");
+    } else {
+      showStatus("Error al guardar la configuración.", "error");
+    }
+  };
+
   // --- File Upload Handlers ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -203,7 +276,7 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
 
     const result = await uploadPrerollAction(formData);
     setUploading(false);
-    
+
     if (result.success) {
       setPrerollFile(null);
       setPrerollStatus("Comercial subido y publicado exitosamente.");
@@ -213,13 +286,77 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
     }
   };
 
+  // --- Users Handlers ---
+  const refreshUsersData = async () => {
+    // The users list mutates server-side state (D1); simplest correctness
+    // path is a full page reload rather than re-fetching via a dedicated
+    // server action call from the client — matches the existing logout flow.
+    window.location.reload();
+  };
+
+  const handleInviteUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inviteEmail || !inviteEmail.includes('@')) {
+      showStatus("Ingresa un correo válido.", "error");
+      return;
+    }
+    setInvitingUser(true);
+    const res = await createInviteAction(inviteEmail.trim(), inviteRole);
+    setInvitingUser(false);
+    if (res.success) {
+      showStatus(`Invitación enviada a ${inviteEmail}.`);
+      setInviteEmail('');
+      await refreshUsersData();
+    } else {
+      showStatus(res.error || "No se pudo enviar la invitación.", "error");
+    }
+  };
+
+  const handleResendInvite = async (token: string, inviteEmailAddr: string) => {
+    const res = await resendInviteAction(token);
+    if (res.success) {
+      showStatus(`Invitación reenviada a ${inviteEmailAddr}.`);
+    } else {
+      showStatus(res.error || "No se pudo reenviar la invitación.", "error");
+    }
+  };
+
+  const handleRevokeInvite = async (token: string) => {
+    if (!confirm("¿Cancelar esta invitación pendiente?")) return;
+    await revokeInviteAction(token);
+    showStatus("Invitación cancelada.");
+    await refreshUsersData();
+  };
+
+  const handleRevokeUser = async (userId: string) => {
+    if (!confirm("¿Revocar el acceso de este usuario? Perderá acceso inmediatamente en todas sus sesiones.")) return;
+    const res = await revokeUserAction(userId);
+    if (res.success) {
+      showStatus("Usuario revocado.");
+      await refreshUsersData();
+    } else {
+      showStatus(res.error || "No se pudo revocar el usuario.", "error");
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: string) => {
+    if (!confirm("¿Cerrar esta sesión?")) return;
+    const ok = await revokeSessionAction(sessionId);
+    if (ok) {
+      showStatus("Sesión cerrada.");
+      await refreshUsersData();
+    } else {
+      showStatus("No se pudo cerrar la sesión.", "error");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-bonchona-navy text-white pt-8 pb-24 px-4 sm:px-6 lg:px-12 relative overflow-hidden">
       {/* Mesh Background */}
       <div className="fixed inset-0 bg-mesh-brand pointer-events-none opacity-20 z-0"></div>
 
       <div className="max-w-6xl mx-auto relative z-10">
-        
+
         {/* Title */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-10 border-b border-white/5 pb-6 gap-6">
           <div className="text-center md:text-left">
@@ -227,19 +364,19 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
               PANEL <span className="text-gradient">CONTROL.</span>
             </h1>
             <p className="text-zinc-500 text-xs sm:text-sm tracking-widest uppercase mt-2 font-bold">
-              Gestión visual para Radio Bonchona 107.1
+              {email} · {role === 'owner' ? 'Administrador' : 'Editor'}
             </p>
             <button
               onClick={async () => {
                 await logoutAdminAction();
-                window.location.reload();
+                window.location.href = '/admin';
               }}
               className="text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-bonchona-red mt-3 transition-colors block text-center md:text-left"
             >
               Cerrar Sesión
             </button>
           </div>
-          
+
           {/* Tabs Navigation */}
           <div className="flex flex-wrap gap-2 p-1.5 glass rounded-full border-white/10">
             <button
@@ -255,10 +392,10 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
               Tarifas Publicidad
             </button>
             <button
-              onClick={() => { setActiveTab('preroll'); handleCancelProgram(); }}
-              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'preroll' ? 'bg-bonchona-red text-white' : 'text-zinc-400 hover:text-white'}`}
+              onClick={() => { setActiveTab('settings'); handleCancelProgram(); }}
+              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'settings' ? 'bg-bonchona-red text-white' : 'text-zinc-400 hover:text-white'}`}
             >
-              Comercial Preroll
+              Configuración
             </button>
             <button
               onClick={() => { setActiveTab('analytics'); handleCancelProgram(); }}
@@ -266,6 +403,14 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
             >
               Estadísticas
             </button>
+            {role === 'owner' && (
+              <button
+                onClick={() => { setActiveTab('usuarios'); handleCancelProgram(); }}
+                className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'usuarios' ? 'bg-bonchona-red text-white' : 'text-zinc-400 hover:text-white'}`}
+              >
+                Usuarios
+              </button>
+            )}
           </div>
         </div>
 
@@ -284,7 +429,7 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight text-bonchona-red">Programas de la Radio</h2>
-                  <button 
+                  <button
                     onClick={handleAddClick}
                     className="px-6 py-3 bg-white text-black font-black rounded-full hover:bg-bonchona-red hover:text-white transition-all uppercase tracking-widest text-[9px]"
                   >
@@ -298,12 +443,12 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                       <div className="relative w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 bg-zinc-950 border border-white/10">
                         <Image src={show.banner || "/logos-bonchona/92.png"} alt={show.title} fill className="object-cover" />
                       </div>
-                      
+
                       <div className="min-w-0 flex-1">
                         <span className="text-bonchona-red text-[9px] font-black tracking-widest uppercase block mb-1">{show.time}</span>
                         <h3 className="text-lg sm:text-xl font-black truncate uppercase italic tracking-tight">{show.title}</h3>
                         <p className="text-zinc-500 text-[10px] font-bold truncate uppercase tracking-widest mt-1">Con: {show.locutor}</p>
-                        
+
                         <div className="flex gap-4 mt-4">
                           <button
                             onClick={() => handleEditClick(show)}
@@ -334,8 +479,8 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col gap-2">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Título del Programa *</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={programForm.title || ''}
                         onChange={e => setProgramForm({...programForm, title: e.target.value})}
                         placeholder="Ej: Despertando con Venezuela"
@@ -344,8 +489,8 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Horario (Texto) *</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={programForm.time || ''}
                         onChange={e => setProgramForm({...programForm, time: e.target.value})}
                         placeholder="Ej: 06:00 AM - 08:00 AM"
@@ -357,8 +502,8 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col gap-2">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Locutor(es) *</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={programForm.locutor || ''}
                         onChange={e => setProgramForm({...programForm, locutor: e.target.value})}
                         placeholder="Ej: Pedro Pérez y María Ruiz"
@@ -366,9 +511,9 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Precio Patrocinio En Vivo (En Euros) *</label>
-                      <input 
-                        type="number" 
+                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Precio Patrocinio En Vivo</label>
+                      <input
+                        type="number"
                         value={programForm.price ?? 0}
                         onChange={e => setProgramForm({...programForm, price: Number(e.target.value)})}
                         placeholder="Ej: 350"
@@ -380,8 +525,8 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <div className="md:col-span-2 flex flex-col gap-2">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Ruta de Banner (O URL de imagen) <span className="text-zinc-500/70 font-semibold block sm:inline sm:ml-2">(Recomendado: 600x900px, vertical 2:3)</span></label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={programForm.banner || ''}
                         onChange={e => setProgramForm({...programForm, banner: e.target.value})}
                         placeholder="Ej: /api/images/despertando.png"
@@ -391,8 +536,8 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                     <div className="flex flex-col gap-2">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Subir Banner a R2</label>
                       <div className="relative">
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           accept="image/*"
                           onChange={handleImageUpload}
                           disabled={imageUploading}
@@ -409,9 +554,9 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                     <div className="flex flex-col gap-2">
                       <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Vista Previa del Banner</label>
                       <div className="relative w-32 h-32 rounded-xl overflow-hidden bg-zinc-950 border border-white/10">
-                        <img 
-                          src={programForm.banner} 
-                          alt="Vista Previa" 
+                        <img
+                          src={programForm.banner}
+                          alt="Vista Previa"
                           className="object-cover w-full h-full"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = "/logos-bonchona/92.png";
@@ -423,7 +568,7 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
 
                   <div className="flex flex-col gap-2">
                     <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Descripción Larga del Programa</label>
-                    <textarea 
+                    <textarea
                       value={programForm.description || ''}
                       onChange={e => setProgramForm({...programForm, description: e.target.value})}
                       placeholder="Escribe una descripción completa del contenido y propósito del programa..."
@@ -434,8 +579,8 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
 
                   <div className="flex flex-col gap-2">
                     <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Frase Destacada (Para el detalle modal)</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={programForm.richText || ''}
                       onChange={e => setProgramForm({...programForm, richText: e.target.value})}
                       placeholder="Ej: ¡Tu mañana ya no será igual!"
@@ -468,22 +613,22 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
         {activeTab === 'rates' && (
           <div className="glass rounded-[2.5rem] p-8 sm:p-12 border-white/10 shadow-2xl">
             <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight text-bonchona-red mb-8">Tarifario de Publicidad Rotativa</h2>
-            
+
             <div className="space-y-10">
               {rates.map((rate, rIdx) => (
                 <div key={rIdx} className="space-y-4">
                   <h3 className="text-base sm:text-lg font-black uppercase tracking-widest text-zinc-400 border-b border-white/5 pb-2">
                     Frecuencia: {rate.freq}
                   </h3>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {rate.durations.map((dur, dIdx) => (
                       <div key={dIdx} className="flex flex-col gap-2 p-4 glass rounded-2xl border-white/5">
                         <label className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Duración: {dur.time}</label>
                         <div className="flex items-center bg-white/5 border border-white/10 rounded-xl px-3 focus-within:border-bonchona-red transition-all">
                           <span className="text-zinc-600 font-bold mr-1">€</span>
-                          <input 
-                            type="number" 
+                          <input
+                            type="number"
                             value={dur.price}
                             onChange={e => handleRatePriceChange(rIdx, dIdx, Number(e.target.value))}
                             className="w-full py-3 bg-transparent border-none focus:outline-none text-sm font-bold text-white"
@@ -494,7 +639,7 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                   </div>
                 </div>
               ))}
-              
+
               <div className="pt-6 border-t border-white/5">
                 <button
                   onClick={handleSaveRates}
@@ -507,48 +652,112 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
           </div>
         )}
 
-        {/* TAB 3: PREROLL */}
-        {activeTab === 'preroll' && (
-          <div className="glass rounded-[2.5rem] p-8 sm:p-12 border-white/10 shadow-2xl">
-            <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight text-bonchona-red mb-4">Comercial de Preroll</h2>
-            <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed mb-8 max-w-xl font-medium">
-              Este archivo MP3 es el spot comercial corto que suena automáticamente la primera vez que un oyente hace clic en &quot;Escuchar en vivo&quot;.
-            </p>
+        {/* TAB 3: SETTINGS (WhatsApp, Stream, Preroll) */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6">
+            <div className="glass rounded-[2.5rem] p-8 sm:p-12 border-white/10 shadow-2xl">
+              <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight text-bonchona-red mb-4">Configuración Operativa</h2>
+              <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed mb-8 max-w-xl font-medium">
+                Números de WhatsApp y direcciones del stream en vivo. Cambia estos valores sin necesidad de tocar código.
+              </p>
 
-            <form onSubmit={handleUploadPreroll} className="space-y-8 max-w-md">
-              <div className="flex flex-col gap-4">
-                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Subir nuevo archivo MP3</label>
-                
-                <div className="relative border-2 border-dashed border-white/10 hover:border-bonchona-red/50 rounded-2xl p-8 transition-colors flex flex-col items-center justify-center text-center cursor-pointer group bg-white/5">
-                  <input 
-                    type="file" 
-                    accept="audio/mpeg, audio/mp3" 
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              <form onSubmit={handleSaveSettings} className="space-y-6 max-w-2xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">WhatsApp — Pedir Canción</label>
+                    <input
+                      type="text"
+                      value={settingsForm.whatsappSongRequest}
+                      onChange={e => setSettingsForm({ ...settingsForm, whatsappSongRequest: e.target.value })}
+                      placeholder="Ej: 584144001071"
+                      className="p-4 rounded-xl bg-white/5 border border-white/10 focus:border-bonchona-red focus:outline-none transition-all text-sm font-bold text-white placeholder-zinc-700"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">WhatsApp — Publicidad / Anúnciate</label>
+                    <input
+                      type="text"
+                      value={settingsForm.whatsappAdvertising}
+                      onChange={e => setSettingsForm({ ...settingsForm, whatsappAdvertising: e.target.value })}
+                      placeholder="Ej: 584244001367"
+                      className="p-4 rounded-xl bg-white/5 border border-white/10 focus:border-bonchona-red focus:outline-none transition-all text-sm font-bold text-white placeholder-zinc-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">URL del Stream en Vivo (Icecast)</label>
+                  <input
+                    type="text"
+                    value={settingsForm.streamUrl}
+                    onChange={e => setSettingsForm({ ...settingsForm, streamUrl: e.target.value })}
+                    placeholder="Ej: https://radio.bonchonaradio.com:8443/stream"
+                    className="p-4 rounded-xl bg-white/5 border border-white/10 focus:border-bonchona-red focus:outline-none transition-all text-sm font-bold text-white placeholder-zinc-700"
                   />
-                  <span className="text-4xl mb-4 group-hover:scale-110 transition-transform">🎙️</span>
-                  <span className="text-xs font-bold text-zinc-400 group-hover:text-white transition-colors">
-                    {prerollFile ? prerollFile.name : "Seleccionar o arrastrar archivo MP3"}
-                  </span>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-zinc-600 mt-2">Max. tamaño recomendado: 5MB</span>
                 </div>
-              </div>
 
-              {prerollStatus && (
-                <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-bonchona-red animate-pulse"></span>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none">{prerollStatus}</p>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">URL de Metadata (status-json.xsl)</label>
+                  <input
+                    type="text"
+                    value={settingsForm.metadataUrl}
+                    onChange={e => setSettingsForm({ ...settingsForm, metadataUrl: e.target.value })}
+                    placeholder="Ej: https://radio.bonchonaradio.com:8443/status-json.xsl"
+                    className="p-4 rounded-xl bg-white/5 border border-white/10 focus:border-bonchona-red focus:outline-none transition-all text-sm font-bold text-white placeholder-zinc-700"
+                  />
                 </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={uploading}
-                className="px-8 py-4 bg-bonchona-red text-white font-black rounded-full hover:scale-105 transition-all uppercase tracking-widest text-[9px] disabled:opacity-50 disabled:pointer-events-none"
-              >
-                {uploading ? "Subiendo comercial..." : "Subir Comercial MP3"}
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="px-8 py-4 bg-bonchona-red text-white font-black rounded-full hover:scale-105 transition-all uppercase tracking-widest text-[9px] disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {savingSettings ? "Guardando..." : "Guardar Configuración"}
+                </button>
+              </form>
+            </div>
+
+            <div className="glass rounded-[2.5rem] p-8 sm:p-12 border-white/10 shadow-2xl">
+              <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight text-bonchona-red mb-4">Comercial de Preroll</h2>
+              <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed mb-8 max-w-xl font-medium">
+                Este archivo MP3 es el spot comercial corto que suena automáticamente la primera vez que un oyente hace clic en &quot;Escuchar en vivo&quot;.
+              </p>
+
+              <form onSubmit={handleUploadPreroll} className="space-y-8 max-w-md">
+                <div className="flex flex-col gap-4">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Subir nuevo archivo MP3</label>
+
+                  <div className="relative border-2 border-dashed border-white/10 hover:border-bonchona-red/50 rounded-2xl p-8 transition-colors flex flex-col items-center justify-center text-center cursor-pointer group bg-white/5">
+                    <input
+                      type="file"
+                      accept="audio/mpeg, audio/mp3"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    <span className="text-4xl mb-4 group-hover:scale-110 transition-transform">🎙️</span>
+                    <span className="text-xs font-bold text-zinc-400 group-hover:text-white transition-colors">
+                      {prerollFile ? prerollFile.name : "Seleccionar o arrastrar archivo MP3"}
+                    </span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-zinc-600 mt-2">Max. tamaño recomendado: 5MB</span>
+                  </div>
+                </div>
+
+                {prerollStatus && (
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
+                    <span className="w-1.5 h-1.5 rounded-full bg-bonchona-red animate-pulse"></span>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 leading-none">{prerollStatus}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="px-8 py-4 bg-bonchona-red text-white font-black rounded-full hover:scale-105 transition-all uppercase tracking-widest text-[9px] disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {uploading ? "Subiendo comercial..." : "Subir Comercial MP3"}
+                </button>
+              </form>
+            </div>
           </div>
         )}
 
@@ -556,7 +765,7 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
           <div className="glass rounded-[2.5rem] p-8 sm:p-12 border-white/10 shadow-2xl min-h-[600px] flex flex-col">
             <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight text-bonchona-red mb-4">Métricas y Analíticas</h2>
             <p className="text-zinc-400 text-xs mb-8">Informes de audiencia en tiempo real y comportamiento del reproductor.</p>
-            
+
             {process.env.NEXT_PUBLIC_LOOKER_STUDIO_URL ? (
               <div className="flex-1 w-full h-[600px] rounded-2xl overflow-hidden border border-white/10 bg-zinc-950">
                 <iframe
@@ -591,6 +800,144 @@ export default function AdminClient({ initialPrograms, initialRotativeRates }: A
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB 5: USUARIOS (owner-only) */}
+        {activeTab === 'usuarios' && role === 'owner' && (
+          <div className="space-y-6">
+            <div className="glass rounded-[2.5rem] p-8 sm:p-12 border-white/10 shadow-2xl">
+              <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight text-bonchona-red mb-4">Invitar Nuevo Usuario</h2>
+              <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed mb-8 max-w-xl font-medium">
+                Se enviará un correo con un enlace de acceso. El invitado debe iniciar sesión con la cuenta de Google asociada a ese correo.
+              </p>
+
+              <form onSubmit={handleInviteUser} className="flex flex-col sm:flex-row gap-4 max-w-2xl">
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={e => setInviteEmail(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  className="flex-1 p-4 rounded-xl bg-white/5 border border-white/10 focus:border-bonchona-red focus:outline-none transition-all text-sm font-bold text-white placeholder-zinc-700"
+                />
+                <select
+                  value={inviteRole}
+                  onChange={e => setInviteRole(e.target.value as UserRole)}
+                  className="p-4 rounded-xl bg-white/5 border border-white/10 focus:border-bonchona-red focus:outline-none transition-all text-sm font-bold text-white"
+                >
+                  <option value="editor">Editor</option>
+                  <option value="owner">Administrador</option>
+                </select>
+                <button
+                  type="submit"
+                  disabled={invitingUser}
+                  className="px-8 py-4 bg-bonchona-red text-white font-black rounded-full hover:scale-105 transition-all uppercase tracking-widest text-[9px] disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap"
+                >
+                  {invitingUser ? "Enviando..." : "Enviar Invitación"}
+                </button>
+              </form>
+            </div>
+
+            {usersData && usersData.invites.length > 0 && (
+              <div className="glass rounded-[2.5rem] p-8 sm:p-12 border-white/10 shadow-2xl">
+                <h2 className="text-lg sm:text-xl font-black italic uppercase tracking-tight text-bonchona-red mb-6">Invitaciones Pendientes</h2>
+                <div className="space-y-4">
+                  {usersData.invites.map((invite) => (
+                    <div key={invite.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white/5 border border-white/5">
+                      <div>
+                        <p className="text-sm font-bold text-white">{invite.email}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mt-1">
+                          {invite.role === 'owner' ? 'Administrador' : 'Editor'} · Expira {formatDate(invite.expiresAt)}
+                        </p>
+                      </div>
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => handleResendInvite(invite.id, invite.email)}
+                          className="text-[9px] font-black uppercase tracking-widest text-white hover:text-bonchona-red transition-colors"
+                        >
+                          Reenviar
+                        </button>
+                        <button
+                          onClick={() => handleRevokeInvite(invite.id)}
+                          className="text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-bonchona-red transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="glass rounded-[2.5rem] p-8 sm:p-12 border-white/10 shadow-2xl">
+              <h2 className="text-lg sm:text-xl font-black italic uppercase tracking-tight text-bonchona-red mb-6">Usuarios con Acceso</h2>
+              <div className="space-y-4">
+                {(usersData?.users ?? []).map((u) => (
+                  <div key={u.id} className="rounded-2xl bg-white/5 border border-white/5 overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <p className="text-sm font-bold text-white truncate">{u.email}</p>
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${u.role === 'owner' ? 'bg-bonchona-purple/30 text-bonchona-purple-medium' : 'bg-white/10 text-zinc-400'}`}>
+                            {u.role === 'owner' ? 'Administrador' : 'Editor'}
+                          </span>
+                          {u.status === 'revoked' && (
+                            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-bonchona-red/20 text-bonchona-red">
+                              Revocado
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mt-1">
+                          Último acceso: {formatDate(u.lastLoginAt)}
+                        </p>
+                      </div>
+                      <div className="flex gap-4 items-center flex-shrink-0">
+                        <button
+                          onClick={() => setExpandedUserId(expandedUserId === u.id ? null : u.id)}
+                          className="text-[9px] font-black uppercase tracking-widest text-white hover:text-bonchona-red transition-colors"
+                        >
+                          Sesiones ({u.sessions.length})
+                        </button>
+                        {u.status === 'active' && u.id !== usersData?.currentUserId && (
+                          <button
+                            onClick={() => handleRevokeUser(u.id)}
+                            className="text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-bonchona-red transition-colors"
+                          >
+                            Revocar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {expandedUserId === u.id && (
+                      <div className="border-t border-white/5 p-5 space-y-3 bg-black/20">
+                        {u.sessions.length === 0 ? (
+                          <p className="text-[10px] text-zinc-600 uppercase font-bold tracking-widest">Sin sesiones activas.</p>
+                        ) : (
+                          u.sessions.map((s) => (
+                            <div key={s.id} className="flex items-center justify-between gap-4 text-xs">
+                              <div className="min-w-0">
+                                <p className="text-zinc-400 truncate">{s.userAgent || 'Dispositivo desconocido'}</p>
+                                <p className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest mt-0.5">
+                                  Última actividad: {formatDate(s.lastSeenAt)}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleRevokeSession(s.id)}
+                                className="text-[9px] font-black uppercase tracking-widest text-zinc-500 hover:text-bonchona-red transition-colors flex-shrink-0"
+                              >
+                                Cerrar sesión
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
