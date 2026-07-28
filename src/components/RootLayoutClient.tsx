@@ -32,6 +32,7 @@ export default function RootLayoutClient({ settings, children }: RootLayoutClien
 
          <div className="flex flex-col items-center gap-8 relative z-10">
            <Link href="/" onClick={() => setIsMenuOpen(false)} className="text-5xl font-black italic uppercase tracking-tighter hover:text-bonchona-red transition-colors text-white">Inicio</Link>
+           <Link href="/noticias" onClick={() => setIsMenuOpen(false)} className="text-5xl font-black italic uppercase tracking-tighter hover:text-bonchona-red transition-colors text-white">Noticias</Link>
            <Link href="/estudio" onClick={() => setIsMenuOpen(false)} className="text-5xl font-black italic uppercase tracking-tighter hover:text-bonchona-red transition-colors text-white">Estudio</Link>
            <Link href="/famoso" onClick={() => setIsMenuOpen(false)} className="text-5xl font-black italic uppercase tracking-tighter text-bonchona-red">Anúnciate</Link>
            <Link href="/nosotros" onClick={() => setIsMenuOpen(false)} className="text-xl font-bold text-zinc-500 uppercase tracking-[0.3em]">Historia</Link>
@@ -52,6 +53,7 @@ export default function RootLayoutClient({ settings, children }: RootLayoutClien
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-[0.3em]">
+            <Link href="/noticias" className="hover:text-bonchona-red transition-colors text-zinc-400">Noticias</Link>
             <Link href="/estudio" className="hover:text-bonchona-red transition-colors text-zinc-400">Estudio</Link>
             <Link href="/nosotros" className="hover:text-bonchona-red transition-colors text-zinc-400">Historia</Link>
             <Link href="/famoso" className="px-6 py-2.5 bg-bonchona-red text-white rounded-full hover:scale-105 transition-all shadow-[0_10px_20px_rgba(232,75,50,0.2)]">Anúnciate</Link>

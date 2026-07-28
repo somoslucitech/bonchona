@@ -21,6 +21,10 @@
     {
       "binding": "IMAGES_BUCKET",
       "bucket_name": "bonchona-images"
+    },
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "bonchona-cache"
     }
   ],
   "d1_databases": [
@@ -28,11 +32,23 @@
       "binding": "DB",
       "database_name": "bonchona-db",
       "database_id": "fb82b1b8-a34f-4b11-98f9-c31f46dd8ff1"
+    },
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "bonchona-db",
+      "database_id": "fb82b1b8-a34f-4b11-98f9-c31f46dd8ff1"
+    }
+  ],
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "bonchona"
     }
   ],
   "vars": {
     "EMAIL_FROM": "Bonchona Radio <no-reply@bonchonaradio.com>",
-    "GOOGLE_CLIENT_ID": "676560544113-iqduj9vf742acpga6tnn7vh8f1oo3rcq.apps.googleusercontent.com"
+    "GOOGLE_CLIENT_ID": "676560544113-iqduj9vf742acpga6tnn7vh8f1oo3rcq.apps.googleusercontent.com",
+    "SITE_URL": "https://bonchona.somoslucitech.workers.dev"
   },
   "observability": {
     "enabled": true

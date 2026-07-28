@@ -1,0 +1,34 @@
+# Bonchona 107.1 FM
+
+> Emisora de radio venezolana con sede en Valencia, estado Carabobo. Transmite
+> música, noticias y entretenimiento en el 107.1 del dial FM y en streaming.
+> Al aire desde el 17 de septiembre de 1997. Lema: "Sintonía Total".
+
+Bonchona 107.1 FM publica a diario noticias musicales en español, con foco en
+estrenos, artistas emergentes y la escena de Venezuela y Latinoamérica. La voz
+editorial es coloquial venezolana.
+
+## Secciones principales
+
+- [Inicio](/): reproductor en vivo, parrilla de programación y noticias destacadas.
+- [Noticias](/noticias): archivo completo de noticias musicales, actualizado a diario.
+- [Anúnciate](/famoso): tarifas de publicidad rotativa y patrocinio de programas.
+- [Estudio](/estudio): servicios de producción de audio, podcast y jingles.
+- [Historia](/nosotros): historia y valores de la emisora.
+
+## Categorías de noticias
+
+- [Música](/noticias/categoria/musica): estrenos, artistas y actualidad musical.
+- [Cosa Valenciana](/noticias/categoria/cosa-valenciana): la movida cultural de Valencia y Carabobo.
+- [Artistas Emergentes](/noticias/categoria/artistas-emergentes): talento nuevo de Venezuela y el mundo.
+- [Pop](/noticias/categoria/pop): pop internacional.
+- [Economía](/noticias/categoria/economia): economía y negocios de la industria musical.
+
+## Datos de la emisora
+
+- Frecuencia: 107.1 FM
+- Ubicación: Valencia, Carabobo, Venezuela
+- Fundación: 17 de septiembre de 1997
+- Idioma: español (es-VE)
+- Feed RSS de noticias: /noticias/feed.xml
+- Mapa del sitio: /sitemap.xml

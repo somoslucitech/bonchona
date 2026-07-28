@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import { getSiteSettings } from "@/lib/db";
 import RootLayoutClient from "@/components/RootLayoutClient";
+import {
+  getSiteUrl, SITE_NAME, SITE_DESCRIPTION, DEFAULT_OG_IMAGE,
+  organizationJsonLd, websiteJsonLd, jsonLdScript,
+} from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,6 +21,65 @@ const geistMono = Geist_Mono({
 
 // Cached for 5 minutes; saveSettingsAction() busts this immediately via revalidatePath.
 export const revalidate = 300;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const site = getSiteUrl();
+  return {
+    // metadataBase convierte rutas relativas (/api/images/...) en absolutas
+    // para canónicas y Open Graph.
+    metadataBase: new URL(site),
+    title: {
+      default: `${SITE_NAME} — Sintonía Total | Radio en Valencia`,
+      template: `%s | ${SITE_NAME}`,
+    },
+    description: SITE_DESCRIPTION,
+    applicationName: SITE_NAME,
+    generator: "Next.js",
+    referrer: "origin-when-cross-origin",
+    keywords: [
+      "Bonchona", "Bonchona 107.1", "radio Valencia", "radio Venezuela",
+      "emisora Carabobo", "música en vivo", "noticias musicales", "radio online",
+    ],
+    authors: [{ name: SITE_NAME, url: site }],
+    creator: SITE_NAME,
+    publisher: SITE_NAME,
+    alternates: {
+      canonical: "/",
+      types: { "application/rss+xml": [{ url: "/noticias/feed.xml", title: `${SITE_NAME} — Noticias` }] },
+    },
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      locale: "es_VE",
+      url: site,
+      title: `${SITE_NAME} — Sintonía Total`,
+      description: SITE_DESCRIPTION,
+      images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: SITE_NAME }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${SITE_NAME} — Sintonía Total`,
+      description: SITE_DESCRIPTION,
+      images: [DEFAULT_OG_IMAGE],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
+    },
+    icons: {
+      icon: [{ url: "/logos-bonchona/ico.png", type: "image/png" }],
+      apple: [{ url: "/logos-bonchona/ico.png" }],
+    },
+    category: "music",
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -52,6 +116,14 @@ export default async function RootLayout({
             />
           </>
         )}
+
+        {/* Identidad de la emisora para buscadores y motores generativos. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: jsonLdScript([organizationJsonLd(), websiteJsonLd()]),
+          }}
+        />
 
         <RootLayoutClient settings={settings}>
           {children}

@@ -1,4 +1,6 @@
 import { getPrograms, getRotativeRates, getSiteSettings } from "@/lib/db";
+import { getQueueConfig } from "@/lib/settings";
+import { listArticlesForAdmin } from "@/lib/news-admin";
 import { getSession } from "@/lib/auth";
 import { listUsersAction } from "@/app/admin/actions";
 import AdminClient from "@/components/AdminClient";
@@ -18,10 +20,12 @@ export default async function AdminPage({
     return <AdminLogin error={error} />;
   }
 
-  const [programs, rotativeRates, settings] = await Promise.all([
+  const [programs, rotativeRates, settings, newsData, queueConfig] = await Promise.all([
     getPrograms(),
     getRotativeRates(),
     getSiteSettings(),
+    listArticlesForAdmin({ page: 1 }),
+    getQueueConfig(),
   ]);
 
   const usersData = session.user.role === "owner" ? await listUsersAction() : null;
@@ -34,6 +38,8 @@ export default async function AdminPage({
       role={session.user.role}
       email={session.user.email}
       initialUsersData={usersData}
+      initialNewsData={newsData}
+      initialQueueConfig={queueConfig}
     />
   );
 }
