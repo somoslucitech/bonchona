@@ -40,13 +40,70 @@ const ALLOWED_IFRAME_HOSTS = [
   "player.vimeo.com",
 ];
 
-function isSafeUrl(value: string, allowRelative = true): boolean {
-  const v = value.trim();
-  if (!v) return false;
-  // Bloquea javascript:, data:, vbscript: y variantes ofuscadas.
-  if (/^[a-z0-9.+-]*\s*:/i.test(v)) {
-    return /^https?:\/\//i.test(v) || /^mailto:/i.test(v);
+/**
+ * Etiquetas que hay que borrar CON su contenido, nunca con
+ * removeAndKeepContent().
+ *
+ * El interior de estos elementos es "texto crudo" para el parser: lo que hay
+ * dentro no es marcado. Si se les quita solo la etiqueta envolvente, ese texto
+ * se re-serializa tal cual y pasa a ser marcado VIVO, así que
+ * `<textarea><img onerror=...></textarea>` se convertiría en un <img> real.
+ */
+const DROP_WITH_CONTENT = new Set([
+  "script", "style", "textarea", "title", "noscript", "xmp", "plaintext",
+  "svg", "math", "object", "embed", "applet", "canvas",
+  "form", "input", "button", "select", "option", "optgroup", "label",
+  "link", "meta", "base", "frame", "frameset", "template", "noembed", "noframes",
+]);
+
+function safeFromCodePoint(cp: number): string {
+  return Number.isFinite(cp) && cp >= 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : "";
+}
+
+/**
+ * Normaliza una URL como lo hace el navegador ANTES de resolver el esquema:
+ * decodifica entidades y elimina caracteres de control y espacios.
+ *
+ * Sin esto, `&#106;avascript:` o `java<TAB>script:` no parecen tener esquema,
+ * se toman por relativas y pasan el filtro, pero el navegador sí las resuelve
+ * como javascript: y las ejecuta.
+ */
+function normalizeUrlForCheck(value: string): string {
+  const decoded = value
+    .replace(/&#x([0-9a-f]+);?/gi, (_, h) => safeFromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);?/g, (_, d) => safeFromCodePoint(Number(d)))
+    .replace(/&colon;?/gi, ":")
+    .replace(/&tab;?/gi, "\t")
+    .replace(/&newline;?/gi, "\n")
+    .replace(/&amp;?/gi, "&");
+
+  // Fuera controles y espacios (<= U+0020 y U+007F): el navegador los ignora
+  // al resolver el esquema. Se filtra por code point para no meter
+  // caracteres de control literales en el código fuente.
+  let out = "";
+  for (const ch of decoded) {
+    const cp = ch.codePointAt(0) ?? 0;
+    if (cp > 0x20 && cp !== 0x7f) out += ch;
   }
+  return out;
+}
+
+const SAFE_PROTOCOLS = new Set(["http", "https", "mailto"]);
+
+/**
+ * Allowlist de esquemas sobre el valor ya normalizado. Se valida la forma
+ * normalizada (la que verá el navegador) pero se conserva el valor original,
+ * porque normalizar solo QUITA ruido: si lo limpio resulta inofensivo, lo
+ * original también lo es.
+ */
+function isSafeUrl(value: string, allowRelative = true): boolean {
+  const v = normalizeUrlForCheck(value).trim();
+  if (!v) return false;
+
+  const scheme = /^([a-z0-9.+-]+):/i.exec(v);
+  if (scheme) return SAFE_PROTOCOLS.has(scheme[1].toLowerCase());
+
+  // Sin esquema: es una ruta relativa o protocol-relative (//host/...).
   return allowRelative;
 }
 
@@ -85,8 +142,18 @@ export async function sanitizeHtml(input: string): Promise<string> {
       element(el: CfElement) {
         const tag = el.tagName.toLowerCase();
 
+        if (DROP_WITH_CONTENT.has(tag)) {
+          // Se van enteras. Ver el comentario de DROP_WITH_CONTENT: usar
+          // removeAndKeepContent() aquí convertiría su texto crudo en marcado
+          // ejecutable.
+          el.remove();
+          return;
+        }
+
         if (!ALLOWED_TAGS.has(tag)) {
-          // Quita la etiqueta pero conserva su contenido de texto.
+          // Etiqueta de contenido normal que no está permitida: quitamos la
+          // etiqueta y dejamos lo de dentro, que el parser ya trató como
+          // marcado y por tanto ya pasó por este mismo filtro.
           el.removeAndKeepContent();
           return;
         }
@@ -138,14 +205,22 @@ export async function sanitizeHtml(input: string): Promise<string> {
   return await res.text();
 }
 
-/** Fallback para runtime Node: elimina scripts/estilos y toda etiqueta no permitida. */
+/**
+ * Fallback para runtime Node (solo `next dev`). En producción siempre corre
+ * HTMLRewriter. Borra con su contenido las mismas etiquetas que
+ * DROP_WITH_CONTENT y desactiva href/src que no sean http(s)/mailto.
+ */
 function conservativeStrip(input: string): string {
+  const drop = [...DROP_WITH_CONTENT].join("|");
   return input
     .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<(script|style|object|embed|form|input|link|meta)[\s\S]*?<\/\1>/gi, "")
-    .replace(/<(script|style|object|embed|form|input|link|meta)\b[^>]*\/?>/gi, "")
+    // Con contenido incluido, y también la variante sin cerrar.
+    .replace(new RegExp(`<(${drop})\\b[\\s\\S]*?<\\/\\1\\s*>`, "gi"), "")
+    .replace(new RegExp(`<\\/?(${drop})\\b[^>]*>`, "gi"), "")
     .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/\s(href|src)\s*=\s*("\s*javascript:[^"]*"|'\s*javascript:[^']*')/gi, "");
+    // Reutiliza la misma validación de esquema que la rama de Workers.
+    .replace(/\s(href|src)\s*=\s*"([^"]*)"/gi, (m, a, v) => (isSafeUrl(v) ? m : ""))
+    .replace(/\s(href|src)\s*=\s*'([^']*)'/gi, (m, a, v) => (isSafeUrl(v) ? m : ""));
 }
 
 /**

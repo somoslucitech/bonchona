@@ -24,25 +24,30 @@ export async function GET(
         object.writeHttpMetadata(headers as unknown as Parameters<typeof object.writeHttpMetadata>[0]);
         headers.set("etag", object.httpEtag);
         
-        // Infer content type from file extension
+        // Content-Type según la extensión, solo mapas de bits.
+        // SVG queda FUERA a propósito: se serviría desde nuestro dominio y es
+        // un documento con scripting, así que un .svg subido equivaldría a
+        // XSS almacenado en el origen del sitio.
         let contentType = "image/png";
         const lowerKey = decodedKey.toLowerCase();
         if (lowerKey.endsWith(".jpg") || lowerKey.endsWith(".jpeg")) {
           contentType = "image/jpeg";
         } else if (lowerKey.endsWith(".webp")) {
           contentType = "image/webp";
-        } else if (lowerKey.endsWith(".svg")) {
-          contentType = "image/svg+xml";
         } else if (lowerKey.endsWith(".gif")) {
           contentType = "image/gif";
         } else if (lowerKey.endsWith(".avif")) {
           contentType = "image/avif";
         }
-        
+
         headers.set("Content-Type", contentType);
+        // Impide que el navegador ignore el Content-Type y deduzca otro por el
+        // contenido, que es como se cuelan los ficheros disfrazados.
+        headers.set("X-Content-Type-Options", "nosniff");
+        headers.set("Content-Security-Policy", "default-src 'none'; sandbox");
         // Cache images in the browser for 1 week to optimize performance and reduce R2 operations
         headers.set("Cache-Control", "public, max-age=604800, immutable");
-        
+
         return new Response(object.body as unknown as BodyInit, {
           headers,
         });

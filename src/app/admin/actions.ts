@@ -156,11 +156,36 @@ export async function uploadProgramImageAction(formData: FormData) {
     const file = formData.get("image") as File;
     if (!file || file.size === 0) return { success: false, error: "No se seleccionó ningún archivo." };
 
-    // Sanitize filename to avoid weird character issues in key name
-    const sanitizedName = file.name
+    // Solo mapas de bits. NUNCA SVG: se sirve desde nuestro propio dominio y
+    // un SVG es un documento con scripting, así que subir uno permitiría
+    // ejecutar código en el origen del sitio con la sesión de quien lo abra
+    // (un editor podría escalar a administrador de esa forma).
+    const EXT_BY_MIME: Record<string, string> = {
+      "image/png": "png",
+      "image/jpeg": "jpg",
+      "image/jpg": "jpg",
+      "image/webp": "webp",
+      "image/avif": "avif",
+      "image/gif": "gif",
+    };
+    const mime = (file.type || "").toLowerCase().split(";")[0].trim();
+    const ext = EXT_BY_MIME[mime];
+    if (!ext) {
+      return {
+        success: false,
+        error: "Formato no permitido. Sube una imagen PNG, JPG, WEBP, AVIF o GIF.",
+      };
+    }
+
+    // La extensión la manda el MIME, no el nombre que envía el cliente: así
+    // el nombre no puede decidir cómo se sirve luego el archivo.
+    const baseName = file.name
       .toLowerCase()
-      .replace(/[^a-z0-9_.-]+/g, "-") // Keep letters, numbers, underscore, dot, hyphen
-      .replace(/(^-|-$)+/g, ""); // Remove trailing hyphens
+      .replace(/\.[^.]*$/, "")            // fuera la extensión original
+      .replace(/[^a-z0-9_-]+/g, "-")      // ojo: el punto ya NO se conserva
+      .replace(/(^-|-$)+/g, "")
+      .slice(0, 60) || "imagen";
+    const sanitizedName = `${baseName}.${ext}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -169,7 +194,7 @@ export async function uploadProgramImageAction(formData: FormData) {
     const env = getCloudflareEnv();
     if (env?.IMAGES_BUCKET) {
       await env.IMAGES_BUCKET.put(sanitizedName, buffer, {
-        httpMetadata: { contentType: file.type || "image/png" }
+        httpMetadata: { contentType: mime }
       });
       return { success: true, url: `/api/images/${sanitizedName}` };
     }
