@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import GlobalPlayer from "@/components/GlobalPlayer";
 import PageTransition from "@/components/PageTransition";
+import VisitTracker from "@/components/VisitTracker";
 import type { SiteSettings } from "@/lib/db";
 
 interface RootLayoutClientProps {
@@ -17,6 +18,10 @@ export default function RootLayoutClient({ settings, children }: RootLayoutClien
 
   return (
     <>
+      <Suspense fallback={null}>
+        <VisitTracker />
+      </Suspense>
+
       {/* Mobile Menu Overlay */}
       <div className={`fixed inset-0 bg-bonchona-navy z-[200] flex flex-col items-center justify-center gap-12 transition-all duration-700 md:hidden ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
          <div className="absolute inset-0 bg-mesh-brand opacity-20 pointer-events-none"></div>
@@ -83,7 +88,6 @@ export default function RootLayoutClient({ settings, children }: RootLayoutClien
 
       <GlobalPlayer
         streamUrl={settings.streamUrl}
-        metadataUrl={settings.streamMetadataUrl}
         songRequestWhatsapp={settings.whatsappSongRequest}
       />
 

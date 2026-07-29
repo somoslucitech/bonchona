@@ -7,7 +7,9 @@ import type { User, UserRole } from '@/lib/users';
 import type { SessionRow } from '@/lib/sessions';
 import type { Invite } from '@/lib/invites';
 import type { AdminNewsPage } from '@/lib/news-admin';
+import type { AnalyticsSummary } from '@/lib/analytics';
 import NewsTab from '@/components/admin/NewsTab';
+import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import {
   saveProgramsAction,
   saveRatesAction,
@@ -43,6 +45,7 @@ interface AdminClientProps {
   initialUsersData: UsersData | null;
   initialNewsData: AdminNewsPage;
   initialQueueConfig: { slotHours: number[]; horizonDays: number };
+  initialAnalytics: AnalyticsSummary;
 }
 
 function formatDate(ts: number | null): string {
@@ -59,6 +62,7 @@ export default function AdminClient({
   initialUsersData,
   initialNewsData,
   initialQueueConfig,
+  initialAnalytics,
 }: AdminClientProps) {
   const [activeTab, setActiveTab] = useState<'programs' | 'noticias' | 'rates' | 'settings' | 'analytics' | 'usuarios'>('programs');
 
@@ -782,47 +786,7 @@ export default function AdminClient({
           </div>
         )}
 
-        {activeTab === 'analytics' && (
-          <div className="glass rounded-[2.5rem] p-8 sm:p-12 border-white/10 shadow-2xl min-h-[600px] flex flex-col">
-            <h2 className="text-xl sm:text-2xl font-black italic uppercase tracking-tight text-bonchona-red mb-4">Métricas y Analíticas</h2>
-            <p className="text-zinc-400 text-xs mb-8">Informes de audiencia en tiempo real y comportamiento del reproductor.</p>
-
-            {process.env.NEXT_PUBLIC_LOOKER_STUDIO_URL ? (
-              <div className="flex-1 w-full h-[600px] rounded-2xl overflow-hidden border border-white/10 bg-zinc-950">
-                <iframe
-                  src={process.env.NEXT_PUBLIC_LOOKER_STUDIO_URL}
-                  className="w-full h-full border-none"
-                  allowFullScreen
-                  sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-                ></iframe>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center p-8 border border-dashed border-white/10 rounded-3xl flex-1">
-                <div className="w-16 h-16 bg-bonchona-red/10 text-bonchona-red rounded-full flex items-center justify-center mb-6">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="18" y1="20" x2="18" y2="10"></line>
-                    <line x1="12" y1="20" x2="12" y2="4"></line>
-                    <line x1="6" y1="20" x2="6" y2="14"></line>
-                  </svg>
-                </div>
-                <h3 className="text-lg font-black uppercase tracking-tight mb-2">Panel de Estadísticas no Configurado</h3>
-                <p className="text-zinc-500 text-xs max-w-md mb-6 leading-relaxed">
-                  Puedes integrar un reporte profesional e interactivo de Google Analytics vinculándolo a Google Looker Studio sin ningún costo.
-                </p>
-                <div className="text-left bg-white/5 border border-white/5 p-6 rounded-2xl max-w-lg text-xs space-y-3">
-                  <p className="font-bold text-white uppercase tracking-wider text-[9px] text-bonchona-red mb-2">Pasos para conectar:</p>
-                  <ol className="list-decimal list-inside space-y-2 text-zinc-400 font-medium">
-                    <li>Entra a <a href="https://lookerstudio.google.com" target="_blank" rel="noreferrer" className="text-white hover:underline font-bold">Google Looker Studio</a>.</li>
-                    <li>Crea un reporte vacío y selecciona <strong>Google Analytics</strong> como origen de datos.</li>
-                    <li>Selecciona la propiedad de GA4 de la radio para crear el dashboard (Google tiene plantillas automáticas).</li>
-                    <li>Haz clic en <strong>Compartir</strong> &rarr; <strong>Insertar informe</strong>, activa la inserción y copia la URL del enlace de inserción.</li>
-                    <li>Guarda esa URL en la variable de entorno: <code className="bg-black/50 text-bonchona-red px-1.5 py-0.5 rounded font-mono font-black text-[9px]">NEXT_PUBLIC_LOOKER_STUDIO_URL</code>.</li>
-                  </ol>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {activeTab === 'analytics' && <AnalyticsTab data={initialAnalytics} />}
 
         {/* TAB 5: USUARIOS (owner-only) */}
         {activeTab === 'usuarios' && role === 'owner' && (

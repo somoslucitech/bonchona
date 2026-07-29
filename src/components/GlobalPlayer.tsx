@@ -10,11 +10,12 @@ const PREROLL_URL = "/api/preroll";
 
 interface GlobalPlayerProps {
   streamUrl: string;
-  metadataUrl: string;
   songRequestWhatsapp: string;
+  // La URL de metadata ya no llega al cliente: se resuelve en el servidor
+  // dentro de /api/now-playing, que además cachea la respuesta.
 }
 
-export default function GlobalPlayer({ streamUrl, metadataUrl, songRequestWhatsapp }: GlobalPlayerProps) {
+export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalPlayerProps) {
   const [mounted, setMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [status, setStatus] = useState<"idle" | "playing_preroll" | "playing_live">("idle");
@@ -26,30 +27,20 @@ export default function GlobalPlayer({ streamUrl, metadataUrl, songRequestWhatsa
 
   // --- Metadata Fetching ---
 
+  // Pasa por /api/now-playing en vez de consultar el Icecast directamente.
+  // Con muchos oyentes, un fetch por cliente cada 15s tumbaría el servidor de
+  // streaming (5.000 oyentes ≈ 333 req/s); el proxy lo cachea 10s en el borde
+  // y el Icecast recibe unas pocas peticiones por minuto en total.
   const fetchMetadata = useCallback(async () => {
     try {
-      const response = await fetch(metadataUrl);
-      const data = await response.json();
-      
-      // Intentamos extraer el título de la canción del JSON de Icecast
-      // La estructura exacta depende de la configuración de Icecast, normalmente:
-      // icestats.source[0].title o icestats.source.title
-      const source = data.icestats?.source;
-      let currentTitle = "";
-      
-      if (Array.isArray(source)) {
-        currentTitle = source[0]?.title || "";
-      } else if (source) {
-        currentTitle = source.title || "";
-      }
-
-      if (currentTitle) {
-        setMetadata(currentTitle);
-      }
+      const response = await fetch("/api/now-playing");
+      if (!response.ok) return;
+      const data = (await response.json()) as { title?: string };
+      if (data.title) setMetadata(data.title);
     } catch (e) {
       console.warn("Could not fetch metadata:", e);
     }
-  }, [metadataUrl]);
+  }, []);
 
   // Intervalo de metadatos (cada 15 segundos)
   useEffect(() => {

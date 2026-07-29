@@ -1,0 +1,21 @@
+{
+  "name": "bonchona-sampler",
+  "main": "index.js",
+  "compatibility_date": "2025-02-01",
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bonchona-db",
+      "database_id": "fb82b1b8-a34f-4b11-98f9-c31f46dd8ff1"
+    }
+  ],
+  "vars": {
+    "STREAM_STATUS_URL": "https://radio.bonchonaradio.com:8443/status-json.xsl"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
