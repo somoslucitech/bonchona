@@ -40,7 +40,6 @@ export async function sendDemoNotification(demo: {
       body: JSON.stringify({
         from,
         to,
-        reply_to: demo.email,
         subject: `Nuevo demo: ${demo.artistName} — ${demo.trackTitle}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto;">
@@ -58,7 +57,6 @@ export async function sendDemoNotification(demo: {
             <p style="margin:24px 0;">
               <a href="${demo.adminUrl}" style="background:#E84B32;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Escuchar en el panel</a>
             </p>
-            <p style="color:#888;font-size:12px;">Puedes responder directamente a este correo para contactar al artista.</p>
           </div>
         `,
       }),
