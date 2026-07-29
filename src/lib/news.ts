@@ -336,6 +336,26 @@ export async function listLatest(limit = 3): Promise<ArticleCard[]> {
   }
 }
 
+/**
+ * Noticias para la portada: primero las marcadas como destacadas (la primera
+ * es la principal del bloque editorial) y luego se completa con lo más
+ * reciente hasta llegar a `limit`.
+ *
+ * Importante: NO se descartan las destacadas cuando hay menos de `limit`.
+ * Marcar una sola noticia como destacada es el caso normal y esa tiene que
+ * quedar de principal, no perderse detrás de lo más reciente.
+ */
+export async function getHomepageNews(limit = 3): Promise<ArticleCard[]> {
+  const featured = await listFeatured(limit);
+  if (featured.length >= limit) return featured.slice(0, limit);
+
+  const latest = await listLatest(limit + featured.length);
+  const seen = new Set(featured.map((a) => a.id));
+  const filler = latest.filter((a) => !seen.has(a.id));
+
+  return [...featured, ...filler].slice(0, limit);
+}
+
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
   const env = getCloudflareEnv();
   if (!env?.DB) return null;

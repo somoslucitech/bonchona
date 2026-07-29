@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Program } from '@/lib/db';
 import type { ArticleCard } from '@/lib/news';
-import { NewsCard } from '@/components/news/NewsCard';
+import FeaturedNews from '@/components/news/FeaturedNews';
 
 interface HomeClientProps {
   initialPrograms: Program[];
@@ -108,6 +108,10 @@ export default function HomeClient({ initialPrograms, featuredNews }: HomeClient
         </div>
       </section>
 
+      {/* Noticias: van justo después del hero porque el cuadro del hero es
+          `hidden lg:block` y no existe en móvil. Aquí sí las ve todo el mundo. */}
+      <FeaturedNews articles={featuredNews} />
+
       {/* Programming Section - Bento Grid Style */}
       <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 z-10">
         <div className="flex flex-col items-center lg:items-start text-center lg:text-left mb-16 sm:mb-20">
@@ -152,35 +156,6 @@ export default function HomeClient({ initialPrograms, featuredNews }: HomeClient
           ))}
         </div>
       </section>
-
-      {/* Noticias Destacadas */}
-      {featuredNews.length > 0 && (
-        <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 pb-16 sm:pb-24 z-10">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12 sm:mb-16">
-            <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-              <span className="text-bonchona-purple-medium font-black tracking-[0.3em] sm:tracking-[0.4em] text-[10px] sm:text-xs uppercase mb-4 sm:mb-6 block">
-                Lo que está sonando
-              </span>
-              <h2 className="text-4xl sm:text-6xl md:text-7xl font-black italic uppercase tracking-tighter leading-none">
-                NOTICIAS <span className="text-gradient">DESTACADAS.</span>
-              </h2>
-            </div>
-            <Link
-              href="/noticias"
-              className="text-[10px] font-black uppercase tracking-[0.3em] text-white hover:text-bonchona-red transition-all flex items-center gap-4 group whitespace-nowrap"
-            >
-              Ver todas
-              <div className="w-12 h-px bg-white/20 group-hover:bg-bonchona-red group-hover:w-20 transition-all" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {featuredNews.map((article) => (
-              <NewsCard key={article.id} article={article} />
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Ad Space - Premium Inlay */}
       <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 pb-24 sm:pb-40 z-10">

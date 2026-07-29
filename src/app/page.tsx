@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getPrograms } from "@/lib/db";
-import { listFeatured, listLatest } from "@/lib/news";
+import { getHomepageNews } from "@/lib/news";
 import HomeClient from "@/components/HomeClient";
 import { headers } from "next/headers";
 
@@ -21,11 +21,9 @@ export const metadata: Metadata = {
 export default async function Home() {
   await headers(); // Force dynamic execution on every request
 
-  const [programs, featured] = await Promise.all([getPrograms(), listFeatured(3)]);
-
-  // Si no hay suficientes destacadas, completamos con lo más reciente para que
-  // el bloque de la home nunca se vea vacío.
-  const news = featured.length >= 3 ? featured : await listLatest(3);
+  // La destacada manda: queda de principal en el bloque editorial y el resto
+  // se rellena con lo más reciente.
+  const [programs, news] = await Promise.all([getPrograms(), getHomepageNews(3)]);
 
   return <HomeClient initialPrograms={programs} featuredNews={news} />;
 }
