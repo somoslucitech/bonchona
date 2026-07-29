@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Program, RotativeRate } from '@/lib/db';
+import DemoModal from '@/components/DemoModal';
 
 interface FamosoClientProps {
   initialRotativeRates: RotativeRate[];
@@ -14,6 +15,7 @@ interface FamosoClientProps {
 
 export default function FamosoClient({ initialRotativeRates, initialPrograms, whatsappAdvertising }: FamosoClientProps) {
   const [activeRotative, setActiveRotative] = useState(0);
+  const [demoOpen, setDemoOpen] = useState(false);
 
   const getAccent = (id: string) => {
     if (id === 'que-paso-ayer') return 'from-bonchona-red/20';
@@ -65,20 +67,25 @@ export default function FamosoClient({ initialRotativeRates, initialPrograms, wh
         </motion.p>
         
         {/* Aviso para Músicos */}
-        <motion.div 
+        <motion.button
+          type="button"
+          onClick={() => setDemoOpen(true)}
           whileHover={{ scale: 1.02 }}
-          className="mt-6 sm:mt-8 inline-block px-6 sm:px-10 py-4 sm:py-5 glass border-bonchona-red/20 rounded-[1.5rem] sm:rounded-[2rem] shadow-xl cursor-pointer"
+          whileTap={{ scale: 0.99 }}
+          className="mt-6 sm:mt-8 inline-block px-6 sm:px-10 py-4 sm:py-5 glass border-bonchona-red/20 rounded-[1.5rem] sm:rounded-[2rem] shadow-xl cursor-pointer text-left"
         >
           <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-bonchona-red flex items-center justify-center text-lg shadow-[0_0_20px_rgba(232,75,50,0.4)]">🎵</div>
             <div className="text-center md:text-left">
               <p className="text-zinc-500 text-[8px] sm:text-[10px] font-black uppercase tracking-widest leading-none mb-1">Zona de Talento</p>
-              <p className="text-white font-bold text-[11px] sm:text-xs uppercase tracking-tight">Los músicos no pagan por sonar. Envía tu demo.</p>
+              <p className="text-white font-bold text-[11px] sm:text-xs uppercase tracking-tight">¡Queremos escucharte! Envía tu demo.</p>
             </div>
             <div className="w-8 h-px bg-white/10 hidden md:block"></div>
-            <span className="text-bonchona-red font-black text-[9px] sm:text-[10px] uppercase tracking-widest">Enviar Demo →</span>
+            <span className="text-bonchona-red font-black text-[9px] sm:text-[10px] uppercase tracking-widest whitespace-nowrap">Enviar Demo →</span>
           </div>
-        </motion.div>
+        </motion.button>
+
+        <DemoModal open={demoOpen} onClose={() => setDemoOpen(false)} />
       </section>
 
       {/* Publicidad Rotativa - Bento Table Style */}

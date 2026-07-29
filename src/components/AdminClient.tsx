@@ -8,8 +8,10 @@ import type { SessionRow } from '@/lib/sessions';
 import type { Invite } from '@/lib/invites';
 import type { AdminNewsPage } from '@/lib/news-admin';
 import type { AnalyticsSummary } from '@/lib/analytics';
+import type { DemoPage } from '@/lib/demos';
 import NewsTab from '@/components/admin/NewsTab';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
+import DemosTab from '@/components/admin/DemosTab';
 import {
   saveProgramsAction,
   saveRatesAction,
@@ -46,6 +48,7 @@ interface AdminClientProps {
   initialNewsData: AdminNewsPage;
   initialQueueConfig: { slotHours: number[]; horizonDays: number };
   initialAnalytics: AnalyticsSummary;
+  initialDemos: DemoPage;
 }
 
 function formatDate(ts: number | null): string {
@@ -63,8 +66,9 @@ export default function AdminClient({
   initialNewsData,
   initialQueueConfig,
   initialAnalytics,
+  initialDemos,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<'programs' | 'noticias' | 'rates' | 'settings' | 'analytics' | 'usuarios'>('programs');
+  const [activeTab, setActiveTab] = useState<'programs' | 'noticias' | 'demos' | 'rates' | 'settings' | 'analytics' | 'usuarios'>('programs');
 
   // Programs State
   const [programs, setPrograms] = useState<Program[]>(initialPrograms);
@@ -400,6 +404,12 @@ export default function AdminClient({
               className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'noticias' ? 'bg-bonchona-red text-white' : 'text-zinc-400 hover:text-white'}`}
             >
               Noticias
+            </button>
+            <button
+              onClick={() => { setActiveTab('demos'); handleCancelProgram(); }}
+              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'demos' ? 'bg-bonchona-red text-white' : 'text-zinc-400 hover:text-white'}`}
+            >
+              Demos
             </button>
             <button
               onClick={() => { setActiveTab('rates'); handleCancelProgram(); }}
@@ -785,6 +795,8 @@ export default function AdminClient({
             </div>
           </div>
         )}
+
+        {activeTab === 'demos' && <DemosTab initialData={initialDemos} showStatus={showStatus} />}
 
         {activeTab === 'analytics' && <AnalyticsTab data={initialAnalytics} />}
 

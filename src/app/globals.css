@@ -25,6 +25,11 @@
 }
 
 :root {
+  /* Le dice al navegador que los controles nativos (selects, scrollbars,
+     selectores de fecha) se pinten en modo oscuro. Sin esto, el desplegable
+     de un <select> se abre con la paleta clara del sistema. */
+  color-scheme: dark;
+
   --background: #050505;
   --foreground: #f0f0f0;
   --brand: #E84B32; /* Redefinido a Rojo Bonchona */
@@ -45,6 +50,19 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-attachment: fixed;
+}
+
+/* Las <option> no heredan el color del <select>: sin esto el desplegable
+   sale con fondo blanco del sistema y el texto blanco queda invisible,
+   visible solo al pasar el cursor. Afecta a todos los selects del sitio. */
+select option,
+select optgroup {
+  background-color: #14152b;
+  color: #f0f0f0;
+}
+select option:checked {
+  background-color: var(--bonchona-red);
+  color: #fff;
 }
 
 /* Glassmorphism utility */

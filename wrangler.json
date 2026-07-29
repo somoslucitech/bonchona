@@ -25,6 +25,10 @@
     {
       "binding": "NEXT_INC_CACHE_R2_BUCKET",
       "bucket_name": "bonchona-cache"
+    },
+    {
+      "binding": "DEMOS_BUCKET",
+      "bucket_name": "bonchona-demos"
     }
   ],
   "d1_databases": [
@@ -46,7 +50,8 @@
     }
   ],
   "vars": {
-    "EMAIL_FROM": "Bonchona Radio <no-reply@bonchonaradio.com>",
+    "//EMAIL_FROM": "Resend rechaza (403) cualquier remitente de un dominio no verificado. bonchonaradio.com todavía no lo está, así que se envía desde somosluci.com, que sí. Cambiar a no-reply@bonchonaradio.com en cuanto ese dominio se verifique en resend.com/domains.",
+    "EMAIL_FROM": "Bonchona Radio <bonchona@somosluci.com>",
     "GOOGLE_CLIENT_ID": "676560544113-iqduj9vf742acpga6tnn7vh8f1oo3rcq.apps.googleusercontent.com",
     "SITE_URL": "https://bonchona.somoslucitech.workers.dev"
   },

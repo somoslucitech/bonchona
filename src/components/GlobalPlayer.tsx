@@ -8,6 +8,38 @@ import * as gtag from "@/lib/gtag";
 // URLs
 const PREROLL_URL = "/api/preroll";
 
+/**
+ * Cuánto tiempo se le respeta al oyente el spot ya escuchado.
+ *
+ * Sin esto, cada F5 lo obligaba a tragarse la publicidad otra vez, que era
+ * la queja de UX. Se marca solo cuando el spot TERMINA: si lo pausó a la
+ * mitad no llegó a escucharlo y sí le vuelve a sonar, para no quitarle
+ * impresiones al anunciante.
+ */
+const PREROLL_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutos
+const PREROLL_STORAGE_KEY = "bonchona:preroll:heardAt";
+
+function prerollHeardRecently(): boolean {
+  try {
+    const raw = window.localStorage.getItem(PREROLL_STORAGE_KEY);
+    if (!raw) return false;
+    const heardAt = Number(raw);
+    if (!Number.isFinite(heardAt)) return false;
+    return Date.now() - heardAt < PREROLL_COOLDOWN_MS;
+  } catch {
+    // Modo privado o storage bloqueado: ante la duda, suena el spot.
+    return false;
+  }
+}
+
+function markPrerollHeard(): void {
+  try {
+    window.localStorage.setItem(PREROLL_STORAGE_KEY, String(Date.now()));
+  } catch {
+    /* sin storage no hay memoria, pero el reproductor sigue funcionando */
+  }
+}
+
 interface GlobalPlayerProps {
   streamUrl: string;
   songRequestWhatsapp: string;
@@ -269,6 +301,8 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
 
   const handleEnded = useCallback(() => {
     if (status === "playing_preroll") {
+      // Lo escuchó completo: no se lo repetimos durante la ventana de cortesía.
+      markPrerollHeard();
       playLive();
     }
   }, [status, playLive]);
@@ -296,11 +330,17 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
 
       // 3. Cargar URL si es la primera vez
       if (status === "idle") {
+        // Si ya escuchó el spot hace poco, va directo al vivo.
+        if (prerollHeardRecently()) {
+          gtag.event({ action: "preroll_skipped_cooldown", category: "Audio" });
+          await playLive();
+          return;
+        }
         setStatus("playing_preroll");
         audio.src = PREROLL_URL;
         gtag.event({ action: "preroll_start", category: "Audio" });
       }
-      
+
       try {
         await audio.play();
         setIsPlaying(true);

@@ -6,6 +6,7 @@ declare global {
     DB: D1Database;
     PREROLL_BUCKET: R2Bucket;
     IMAGES_BUCKET: R2Bucket;
+    DEMOS_BUCKET: R2Bucket;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
     AUTH_SECRET?: string;
