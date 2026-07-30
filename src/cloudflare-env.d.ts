@@ -13,6 +13,5 @@ declare global {
     RESEND_API_KEY?: string;
     EMAIL_FROM?: string;
     SITE_URL?: string;
-    NEWS_INGEST_TOKEN?: string;
   }
 }

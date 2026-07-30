@@ -38,14 +38,13 @@ export async function generateMetadata(): Promise<Metadata> {
     referrer: "origin-when-cross-origin",
     keywords: [
       "Bonchona", "Bonchona 107.1", "radio Valencia", "radio Venezuela",
-      "emisora Carabobo", "música en vivo", "noticias musicales", "radio online",
+      "emisora Carabobo", "música en vivo", "radio online", "radio en vivo",
     ],
     authors: [{ name: SITE_NAME, url: site }],
     creator: SITE_NAME,
     publisher: SITE_NAME,
     alternates: {
       canonical: "/",
-      types: { "application/rss+xml": [{ url: "/noticias/feed.xml", title: `${SITE_NAME} — Noticias` }] },
     },
     openGraph: {
       type: "website",

@@ -196,38 +196,6 @@ export async function saveStreamConfig(config: StreamConfig): Promise<boolean> {
   return a && b;
 }
 
-// --- Cola de publicación de noticias ---------------------------------------
-// Vive en la tabla `settings` para poder ajustarse desde el admin sin deploy.
-
-export interface QueueConfigSetting {
-  slotHours: number[];
-  horizonDays: number;
-}
-
-export const DEFAULT_QUEUE_SETTING: QueueConfigSetting = {
-  slotHours: [8, 13, 19], // hora de Venezuela (UTC-4)
-  horizonDays: 7,
-};
-
-export async function getQueueConfig(): Promise<QueueConfigSetting> {
-  const raw = await getSetting("news_queue", DEFAULT_QUEUE_SETTING);
-  const slotHours = Array.isArray(raw?.slotHours)
-    ? raw.slotHours.filter((h) => Number.isInteger(h) && h >= 0 && h <= 23)
-    : DEFAULT_QUEUE_SETTING.slotHours;
-  const horizonDays =
-    Number.isFinite(raw?.horizonDays) && raw.horizonDays > 0 && raw.horizonDays <= 60
-      ? raw.horizonDays
-      : DEFAULT_QUEUE_SETTING.horizonDays;
-  return {
-    slotHours: slotHours.length ? slotHours : DEFAULT_QUEUE_SETTING.slotHours,
-    horizonDays,
-  };
-}
-
-export async function saveQueueConfig(config: QueueConfigSetting): Promise<boolean> {
-  return setSetting("news_queue", config);
-}
-
 export async function getSiteSettings(): Promise<SiteSettings> {
   const [whatsapp, stream] = await Promise.all([getWhatsappNumbers(), getStreamConfig()]);
   return {

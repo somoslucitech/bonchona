@@ -6,10 +6,8 @@ import { Program, RotativeRate, SiteSettings } from '@/lib/db';
 import type { User, UserRole } from '@/lib/users';
 import type { SessionRow } from '@/lib/sessions';
 import type { Invite } from '@/lib/invites';
-import type { AdminNewsPage } from '@/lib/news-admin';
 import type { AnalyticsSummary } from '@/lib/analytics';
 import type { DemoPage } from '@/lib/demos';
-import NewsTab from '@/components/admin/NewsTab';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import DemosTab from '@/components/admin/DemosTab';
 import {
@@ -45,8 +43,6 @@ interface AdminClientProps {
   role: UserRole;
   email: string;
   initialUsersData: UsersData | null;
-  initialNewsData: AdminNewsPage;
-  initialQueueConfig: { slotHours: number[]; horizonDays: number };
   initialAnalytics: AnalyticsSummary;
   initialDemos: DemoPage;
 }
@@ -63,12 +59,10 @@ export default function AdminClient({
   role,
   email,
   initialUsersData,
-  initialNewsData,
-  initialQueueConfig,
   initialAnalytics,
   initialDemos,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<'programs' | 'noticias' | 'demos' | 'rates' | 'settings' | 'analytics' | 'usuarios'>('programs');
+  const [activeTab, setActiveTab] = useState<'programs' | 'demos' | 'rates' | 'settings' | 'analytics' | 'usuarios'>('programs');
 
   // Programs State
   const [programs, setPrograms] = useState<Program[]>(initialPrograms);
@@ -400,12 +394,6 @@ export default function AdminClient({
               Programación
             </button>
             <button
-              onClick={() => { setActiveTab('noticias'); handleCancelProgram(); }}
-              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'noticias' ? 'bg-bonchona-red text-white' : 'text-zinc-400 hover:text-white'}`}
-            >
-              Noticias
-            </button>
-            <button
               onClick={() => { setActiveTab('demos'); handleCancelProgram(); }}
               className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'demos' ? 'bg-bonchona-red text-white' : 'text-zinc-400 hover:text-white'}`}
             >
@@ -633,15 +621,6 @@ export default function AdminClient({
               </div>
             )}
           </div>
-        )}
-
-        {/* TAB: NOTICIAS */}
-        {activeTab === 'noticias' && (
-          <NewsTab
-            initialData={initialNewsData}
-            initialQueue={initialQueueConfig}
-            showStatus={showStatus}
-          />
         )}
 
         {/* TAB 2: RATES */}

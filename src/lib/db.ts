@@ -1,6 +1,6 @@
-// Back-compat barrel: existing call sites import Program/RotativeRate/getPrograms/etc.
-// from '@/lib/db'. The actual D1-backed implementations now live in
-// './programs' and './settings'.
+// Back-compat barrel: los call sites importan Program/RotativeRate/getPrograms
+// desde '@/lib/db'. Las implementaciones sobre D1 viven en './programs' y
+// './settings'.
 export type { Program } from './programs';
 export { getPrograms, savePrograms, DEFAULT_PROGRAMS } from './programs';
 export type { RotativeRate, DurationRate, WhatsappNumbers, StreamConfig, SiteSettings } from './settings';

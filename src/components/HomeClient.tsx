@@ -5,15 +5,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Program } from '@/lib/db';
-import type { ArticleCard } from '@/lib/news';
-import FeaturedNews from '@/components/news/FeaturedNews';
 
 interface HomeClientProps {
   initialPrograms: Program[];
-  featuredNews: ArticleCard[];
 }
 
-export default function HomeClient({ initialPrograms, featuredNews }: HomeClientProps) {
+export default function HomeClient({ initialPrograms }: HomeClientProps) {
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
 
   return (
@@ -107,10 +104,6 @@ export default function HomeClient({ initialPrograms, featuredNews }: HomeClient
           ))}
         </div>
       </section>
-
-      {/* Noticias: van justo después del hero porque el cuadro del hero es
-          `hidden lg:block` y no existe en móvil. Aquí sí las ve todo el mundo. */}
-      <FeaturedNews articles={featuredNews} />
 
       {/* Programming Section - Bento Grid Style */}
       <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 z-10">
