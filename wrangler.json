@@ -53,7 +53,9 @@
     "//EMAIL_FROM": "Resend rechaza (403) cualquier remitente de un dominio no verificado. bonchonaradio.com todavía no lo está, así que se envía desde somosluci.com, que sí. Cambiar a no-reply@bonchonaradio.com en cuanto ese dominio se verifique en resend.com/domains.",
     "EMAIL_FROM": "Bonchona Radio <bonchona@somosluci.com>",
     "GOOGLE_CLIENT_ID": "676560544113-iqduj9vf742acpga6tnn7vh8f1oo3rcq.apps.googleusercontent.com",
-    "SITE_URL": "https://bonchona.somoslucitech.workers.dev"
+    "SITE_URL": "https://bonchona.somoslucitech.workers.dev",
+    "//CHAT_WORKER_URL": "Worker del chat en vivo (workers/chat). Vive en otro hostname a proposito: la cookie de sesion no viaja hasta el, la autenticacion va por ticket HMAC firmado en /api/chat/ticket.",
+    "CHAT_WORKER_URL": "https://bonchona-chat.somoslucitech.workers.dev"
   },
   "observability": {
     "enabled": true

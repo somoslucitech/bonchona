@@ -100,7 +100,7 @@ async function writeLocalSetting<T>(key: string, value: T): Promise<boolean> {
   }
 }
 
-async function getSetting<T>(key: string, fallback: T): Promise<T> {
+export async function getSetting<T>(key: string, fallback: T): Promise<T> {
   const env = getCloudflareEnv();
   if (env?.DB) {
     try {
@@ -135,7 +135,7 @@ async function getSetting<T>(key: string, fallback: T): Promise<T> {
   return fallback;
 }
 
-async function setSetting<T>(key: string, value: T): Promise<boolean> {
+export async function setSetting<T>(key: string, value: T): Promise<boolean> {
   const env = getCloudflareEnv();
   if (env?.DB) {
     try {

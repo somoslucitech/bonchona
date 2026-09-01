@@ -13,5 +13,8 @@ declare global {
     RESEND_API_KEY?: string;
     EMAIL_FROM?: string;
     SITE_URL?: string;
+    /** Base del worker del chat en vivo (workers/chat). Sin barra final. */
+    CHAT_WORKER_URL?: string;
+    TURNSTILE_SECRET_KEY?: string;
   }
 }

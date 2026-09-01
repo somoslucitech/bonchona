@@ -1,0 +1,33 @@
+{
+  "name": "bonchona-chat",
+  "main": "index.js",
+  "compatibility_date": "2025-08-01",
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CHAT_ROOM",
+        "class_name": "ChatRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ChatRoom"]
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bonchona-db",
+      "database_id": "fb82b1b8-a34f-4b11-98f9-c31f46dd8ff1"
+    }
+  ],
+  "vars": {
+    "//ALLOWED_ORIGINS": "Origenes que pueden abrir el WebSocket, separados por coma. El worker rechaza cualquier otro para que otra web no monte su propio chat sobre nuestra sala.",
+    "ALLOWED_ORIGINS": "https://bonchona.somoslucitech.workers.dev,https://bonchonaradio.com,https://www.bonchonaradio.com,http://localhost:3000,http://127.0.0.1:3000"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

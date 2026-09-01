@@ -8,6 +8,15 @@ export function vetDayKey(epochMs: number): string {
   return new Date(epochMs - VET_OFFSET_MS).toISOString().slice(0, 10);
 }
 
+/**
+ * Minutos transcurridos desde medianoche en hora de Venezuela (0..1439).
+ * Lo usan las franjas horarias del chat para abrirse y cerrarse solas.
+ */
+export function vetMinutesOfDay(epochMs: number): number {
+  const local = new Date(epochMs - VET_OFFSET_MS);
+  return local.getUTCHours() * 60 + local.getUTCMinutes();
+}
+
 export interface DayPoint {
   day: string;        // 'YYYY-MM-DD'
   peak: number;       // máximo de oyentes concurrentes ese día
