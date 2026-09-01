@@ -8,8 +8,10 @@ import type { SessionRow } from '@/lib/sessions';
 import type { Invite } from '@/lib/invites';
 import type { AnalyticsSummary } from '@/lib/analytics';
 import type { DemoPage } from '@/lib/demos';
+import type { ChatConfig, ChatModerator, ChatAuditEntry } from '@/lib/chat-client';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import DemosTab from '@/components/admin/DemosTab';
+import ChatTab from '@/components/admin/ChatTab';
 import {
   saveProgramsAction,
   saveRatesAction,
@@ -45,6 +47,10 @@ interface AdminClientProps {
   initialUsersData: UsersData | null;
   initialAnalytics: AnalyticsSummary;
   initialDemos: DemoPage;
+  initialChatConfig: ChatConfig;
+  initialChatPin: string;
+  initialChatModerators: ChatModerator[];
+  initialChatAudit: ChatAuditEntry[];
 }
 
 function formatDate(ts: number | null): string {
@@ -61,8 +67,12 @@ export default function AdminClient({
   initialUsersData,
   initialAnalytics,
   initialDemos,
+  initialChatConfig,
+  initialChatPin,
+  initialChatModerators,
+  initialChatAudit,
 }: AdminClientProps) {
-  const [activeTab, setActiveTab] = useState<'programs' | 'demos' | 'rates' | 'settings' | 'analytics' | 'usuarios'>('programs');
+  const [activeTab, setActiveTab] = useState<'programs' | 'demos' | 'rates' | 'settings' | 'chat' | 'analytics' | 'usuarios'>('programs');
 
   // Programs State
   const [programs, setPrograms] = useState<Program[]>(initialPrograms);
@@ -410,6 +420,12 @@ export default function AdminClient({
               className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'settings' ? 'bg-bonchona-red text-white' : 'text-zinc-400 hover:text-white'}`}
             >
               Configuración
+            </button>
+            <button
+              onClick={() => { setActiveTab('chat'); handleCancelProgram(); }}
+              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all ${activeTab === 'chat' ? 'bg-bonchona-red text-white' : 'text-zinc-400 hover:text-white'}`}
+            >
+              Chat
             </button>
             <button
               onClick={() => { setActiveTab('analytics'); handleCancelProgram(); }}
@@ -776,6 +792,17 @@ export default function AdminClient({
         )}
 
         {activeTab === 'demos' && <DemosTab initialData={initialDemos} showStatus={showStatus} />}
+
+        {activeTab === 'chat' && (
+          <ChatTab
+            initialConfig={initialChatConfig}
+            initialPin={initialChatPin}
+            initialModerators={initialChatModerators}
+            initialAudit={initialChatAudit}
+            role={role}
+            showStatus={showStatus}
+          />
+        )}
 
         {activeTab === 'analytics' && <AnalyticsTab data={initialAnalytics} />}
 

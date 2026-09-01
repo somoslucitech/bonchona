@@ -4,6 +4,7 @@ import { useChatSocket } from "./useChatSocket";
 import ChatMessageList from "./ChatMessageList";
 import ChatComposer from "./ChatComposer";
 import ChatHeader from "./ChatHeader";
+import ChatModBar from "./ChatModBar";
 
 interface Props {
   nick: string;
@@ -112,7 +113,13 @@ export default function ChatRoom({ nick, modCode, onClose, onChangeNick }: Props
         </button>
       )}
 
+      {chat.isMod && (
+        <ChatModBar frozen={chat.frozen} pin={chat.pin} onModerate={chat.moderate} />
+      )}
+
       <ChatMessageList
+        isMod={chat.isMod}
+        onModerate={chat.moderate}
         messages={chat.messages}
         emptyLabel={
           chat.status === "connecting"

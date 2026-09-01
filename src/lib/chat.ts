@@ -1,7 +1,19 @@
 import { getCloudflareEnv } from "./cf-env";
+import {
+  CHAT_LIMITS,
+  DEFAULT_CHAT_CONFIG,
+  type ChatConfig,
+  type ChatSlot,
+  type ChatModerator,
+  type ChatAuditEntry,
+} from "./chat-client";
 import { getSetting, setSetting } from "./settings";
 import { getHmacKey, base64UrlEncode } from "./auth";
 import { vetMinutesOfDay } from "./analytics";
+
+// Se reexportan para que el código de servidor siga importando todo de aquí.
+export { CHAT_LIMITS, DEFAULT_CHAT_CONFIG };
+export type { ChatConfig, ChatSlot, ChatModerator, ChatAuditEntry };
 
 // ============================================================
 // Configuración del chat
@@ -11,56 +23,6 @@ import { vetMinutesOfDay } from "./analytics";
 // lee pasa por normalizeConfig(): un valor corrupto degrada al defecto en vez
 // de romper el chat en producción.
 // ============================================================
-
-/** Franja horaria de apertura automática, en minutos desde medianoche (hora Venezuela). */
-export interface ChatSlot {
-  startMin: number;
-  endMin: number;
-}
-
-export interface ChatConfig {
-  /** Interruptor maestro. Si está en false, el chat está cerrado pase lo que pase. */
-  enabled: boolean;
-  /** Si está activo, además del interruptor hay que caer dentro de alguna franja. */
-  scheduleEnabled: boolean;
-  slots: ChatSlot[];
-  /** Milisegundos que un oyente debe esperar entre mensajes. */
-  slowMs: number;
-  /** Sube el modo lento solo cuando el volumen de mensajes se dispara. */
-  autoSlow: boolean;
-  maxChars: number;
-  capacity: number;
-  blockLinks: boolean;
-  blockedWords: string[];
-  reservedNicks: string[];
-}
-
-export const DEFAULT_CHAT_CONFIG: ChatConfig = {
-  enabled: false,
-  scheduleEnabled: false,
-  slots: [],
-  slowMs: 30_000,
-  autoSlow: true,
-  maxChars: 200,
-  capacity: 1000,
-  blockLinks: true,
-  blockedWords: [],
-  reservedNicks: [
-    "admin", "mod", "moderador", "bonchona", "bonchona radio",
-    "staff", "sistema", "locutor",
-  ],
-};
-
-// Topes duros. El admin no puede configurar valores que hagan inviable el
-// coste o la moderación, ni aunque edite la fila de D1 a mano.
-export const CHAT_LIMITS = {
-  slowMs: { min: 1_000, max: 300_000 },
-  maxChars: { min: 40, max: 500 },
-  capacity: { min: 1, max: 5_000 },
-  maxSlots: 8,
-  maxBlockedWords: 300,
-  maxReservedNicks: 100,
-} as const;
 
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
   const n = typeof value === "number" ? Math.round(value) : Number.NaN;
@@ -261,14 +223,6 @@ export const NICK_ERROR_MESSAGES: Record<NickError, string> = {
 // Moderadores sin cuenta (locutores)
 // ============================================================
 
-export interface ChatModerator {
-  nick: string;
-  nickLower: string;
-  createdAt: number;
-  createdBy: string | null;
-  lastSeenAt: number | null;
-  revokedAt: number | null;
-}
 
 /** Sin vocales ni caracteres ambiguos (0/O, 1/I/L): estos códigos se dictan por teléfono. */
 const CODE_ALPHABET = "23456789BCDFGHJKMNPQRSTVWXYZ";
@@ -423,15 +377,6 @@ export async function isModeratorNick(nick: string): Promise<boolean> {
 // Auditoría (la escribe el Durable Object; aquí solo se lee)
 // ============================================================
 
-export interface ChatAuditEntry {
-  id: string;
-  ts: number;
-  actor: string;
-  actorKind: "admin" | "mod";
-  action: string;
-  target: string | null;
-  detail: string | null;
-}
 
 export async function listChatAudit(limit = 100): Promise<ChatAuditEntry[]> {
   const env = getCloudflareEnv();
@@ -499,8 +444,13 @@ export async function signChatTicket(payload: ChatTicketPayload): Promise<string
  * junto con el ticket ya firmado.
  */
 export function chatWorkerBase(): string {
+  // Ojo con el orden: en `next dev` los bindings de wrangler ya están activos
+  // (ver initOpenNextCloudflareForDev en next.config.ts), así que
+  // getCloudflareEnv() devuelve la URL de PRODUCCIÓN escrita en wrangler.json.
+  // Por eso .env.local tiene que poder ganarle, y no al revés: si no, el sitio
+  // en desarrollo hablaría con el worker de producción.
   const env = getCloudflareEnv();
-  const raw = env?.CHAT_WORKER_URL || process.env.CHAT_WORKER_URL || "http://127.0.0.1:8788";
+  const raw = process.env.CHAT_WORKER_URL || env?.CHAT_WORKER_URL || "http://127.0.0.1:8788";
   return raw.replace(/\/+$/, "");
 }
 

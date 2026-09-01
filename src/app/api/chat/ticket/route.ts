@@ -26,9 +26,9 @@ function bad(error: string, status = 400) {
  * Verificación de Turnstile.
  *
  * Devuelve "unconfigured" cuando no hay clave secreta. Eso solo se tolera en
- * `next dev` (donde no hay runtime de Workers): en producción se rechaza la
- * petición, porque un chat anónimo sin ninguna barrera anti-bot es una
- * invitación al spam y fallar hacia el lado abierto sería el error caro.
+ * desarrollo: en producción se rechaza la petición, porque un chat anónimo sin
+ * ninguna barrera anti-bot es una invitación al spam y fallar hacia el lado
+ * abierto sería el error caro.
  */
 async function verifyTurnstile(token: string, ip: string): Promise<boolean | "unconfigured"> {
   const env = getCloudflareEnv();
@@ -115,7 +115,10 @@ export async function POST(request: Request) {
 
     const turnstile = await verifyTurnstile(token, ip);
     if (turnstile === "unconfigured") {
-      if (getCloudflareEnv()) {
+      // Se mira NODE_ENV y no la presencia del entorno de Cloudflare: desde que
+      // next.config.ts llama a initOpenNextCloudflareForDev, `next dev` también
+      // tiene bindings, así que su presencia ya no distingue producción.
+      if (process.env.NODE_ENV === "production") {
         console.error("TURNSTILE_SECRET_KEY no configurado: se rechaza el acceso al chat.");
         return bad("El chat todavía no está configurado. Inténtalo más tarde.", 503);
       }

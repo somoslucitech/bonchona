@@ -3,7 +3,12 @@
  *
  * Vive separado de src/lib/chat.ts a propósito: ese módulo importa
  * `next/headers` y habla con D1, así que no puede entrar en un bundle de
- * cliente. Aquí solo hay tipos del protocolo y utilidades puras.
+ * cliente. Aquí solo hay tipos, constantes y utilidades puras.
+ *
+ * El esquema de configuración también vive aquí, y no en chat.ts, porque la
+ * pestaña de admin es un componente de cliente y necesita los topes para
+ * validar los campos: importarlos del módulo de servidor arrastraba
+ * `next/headers` al navegador y rompía el build.
  */
 
 export interface ChatMessage {
@@ -105,3 +110,76 @@ export const CHAT_EMOJIS = [
   "🎧", "🎤", "📻", "🥁", "🎸", "🎹", "☀️", "🌙",
   "☕", "🍻", "⚽", "🇻🇪", "😅", "🥰", "🤗", "💪",
 ];
+
+// ============================================================
+// Esquema de configuración (compartido entre servidor y panel)
+// ============================================================
+
+/** Franja horaria de apertura automática, en minutos desde medianoche (hora Venezuela). */
+export interface ChatSlot {
+  startMin: number;
+  endMin: number;
+}
+
+export interface ChatConfig {
+  /** Interruptor maestro. Si está en false, el chat está cerrado pase lo que pase. */
+  enabled: boolean;
+  /** Si está activo, además del interruptor hay que caer dentro de alguna franja. */
+  scheduleEnabled: boolean;
+  slots: ChatSlot[];
+  /** Milisegundos que un oyente debe esperar entre mensajes. */
+  slowMs: number;
+  /** Sube el modo lento solo cuando el volumen de mensajes se dispara. */
+  autoSlow: boolean;
+  maxChars: number;
+  capacity: number;
+  blockLinks: boolean;
+  blockedWords: string[];
+  reservedNicks: string[];
+}
+
+export const DEFAULT_CHAT_CONFIG: ChatConfig = {
+  enabled: false,
+  scheduleEnabled: false,
+  slots: [],
+  slowMs: 30_000,
+  autoSlow: true,
+  maxChars: 200,
+  capacity: 1000,
+  blockLinks: true,
+  blockedWords: [],
+  reservedNicks: [
+    "admin", "mod", "moderador", "bonchona", "bonchona radio",
+    "staff", "sistema", "locutor",
+  ],
+};
+
+// Topes duros. El admin no puede configurar valores que hagan inviable el
+// coste o la moderación, ni aunque edite la fila de D1 a mano.
+export const CHAT_LIMITS = {
+  slowMs: { min: 1_000, max: 300_000 },
+  maxChars: { min: 40, max: 500 },
+  capacity: { min: 1, max: 5_000 },
+  maxSlots: 8,
+  maxBlockedWords: 300,
+  maxReservedNicks: 100,
+} as const;
+
+export interface ChatModerator {
+  nick: string;
+  nickLower: string;
+  createdAt: number;
+  createdBy: string | null;
+  lastSeenAt: number | null;
+  revokedAt: number | null;
+}
+
+export interface ChatAuditEntry {
+  id: string;
+  ts: number;
+  actor: string;
+  actorKind: "admin" | "mod";
+  action: string;
+  target: string | null;
+  detail: string | null;
+}

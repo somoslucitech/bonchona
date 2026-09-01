@@ -1,4 +1,12 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
+// Da a `next dev` los bindings reales de wrangler (D1, R2, KV) a traves de
+// miniflare. Sin esto, getCloudflareContext() devuelve null en desarrollo y
+// todo lo que toca D1 -- el panel de admin, la sesion, los moderadores del
+// chat -- cae a los fallbacks de local_db.json y no se puede probar de verdad.
+// No afecta al build ni a produccion: solo corre en `next dev`.
+initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
   images: {

@@ -29,6 +29,8 @@ export interface UseChatSocket {
   /** epoch ms a partir del cual se puede volver a escribir */
   nextAllowedAt: number;
   send: (text: string) => void;
+  /** Envía una orden de moderación. El worker vuelve a comprobar el rol. */
+  moderate: (payload: Record<string, unknown>) => void;
   dismissNotice: () => void;
 }
 
@@ -269,6 +271,14 @@ export function useChatSocket(nick: string, modCode: string): UseChatSocket {
     if (!modRef.current) setNextAllowedAt(Date.now() + slowRef.current);
   }, []);
 
+  // El rol viaja firmado dentro del ticket y el Durable Object lo verifica en
+  // cada orden: esconder los botones es comodidad, no seguridad.
+  const moderate = useCallback((payload: Record<string, unknown>) => {
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify(payload));
+  }, []);
+
   const dismissNotice = useCallback(() => setNotice(null), []);
 
   return {
@@ -283,6 +293,7 @@ export function useChatSocket(nick: string, modCode: string): UseChatSocket {
     queuePosition,
     nextAllowedAt,
     send,
+    moderate,
     dismissNotice,
   };
 }

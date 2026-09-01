@@ -9,6 +9,8 @@ const STICK_THRESHOLD = 60;
 interface Props {
   messages: ChatMessage[];
   emptyLabel: string;
+  isMod?: boolean;
+  onModerate?: (payload: Record<string, unknown>) => void;
 }
 
 /**
@@ -18,7 +20,8 @@ interface Props {
  * en el Durable Object como en el cliente, así que una lista normal rinde de
  * sobra y evita toda la complejidad (y los saltos de scroll) de virtualizar.
  */
-export default function ChatMessageList({ messages, emptyLabel }: Props) {
+export default function ChatMessageList({ messages, emptyLabel, isMod, onModerate }: Props) {
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
   const stickRef = useRef(true);
   // Solo se toca desde manejadores de evento, nunca desde un efecto.
@@ -76,7 +79,18 @@ export default function ChatMessageList({ messages, emptyLabel }: Props) {
           </p>
         ) : (
           messages.map((m) => (
-            <div key={m.i} className="text-[13px] leading-snug break-words">
+            <div key={m.i} className="group relative text-[13px] leading-snug break-words">
+              {isMod && onModerate && (
+                <ModMenu
+                  open={menuFor === m.i}
+                  onToggle={() => setMenuFor((cur) => (cur === m.i ? null : m.i))}
+                  onAction={(payload) => {
+                    onModerate(payload);
+                    setMenuFor(null);
+                  }}
+                  message={m}
+                />
+              )}
               <span className="text-[10px] text-zinc-600 font-mono mr-1.5 tabular-nums">
                 {chatTime(m.ts)}
               </span>
@@ -106,6 +120,88 @@ export default function ChatMessageList({ messages, emptyLabel }: Props) {
         >
           Ir al final ↓
         </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Acciones de moderación sobre un mensaje concreto.
+ *
+ * El botón está siempre presente (no solo al pasar el ratón) porque en móvil no
+ * hay hover y un moderador tiene que poder actuar desde el teléfono, que es
+ * donde suele estar durante una transmisión.
+ */
+function ModMenu({
+  open,
+  onToggle,
+  onAction,
+  message,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  onAction: (payload: Record<string, unknown>) => void;
+  message: ChatMessage;
+}) {
+  const item =
+    "w-full text-left px-3 py-2 text-[11px] font-bold text-zinc-300 hover:bg-white/10 transition-colors";
+
+  return (
+    <div className="absolute right-0 top-0 z-10">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={`Moderar el mensaje de ${message.n}`}
+        aria-expanded={open}
+        className="w-6 h-5 rounded-md text-zinc-700 hover:text-white hover:bg-white/10 opacity-60 group-hover:opacity-100 transition-all text-[13px] leading-none"
+      >
+        ⋯
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-6 w-52 py-1 rounded-xl bg-black/95 border border-white/10 backdrop-blur-xl shadow-[0_20px_40px_rgba(0,0,0,0.6)] overflow-hidden">
+          <p className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-zinc-600 truncate border-b border-white/5">
+            {message.n}
+          </p>
+          <button type="button" className={item} onClick={() => onAction({ k: "del", i: message.i })}>
+            Borrar mensaje
+          </button>
+          <button
+            type="button"
+            className={item}
+            onClick={() => onAction({ k: "ban", n: message.n, mins: 0, shadow: true })}
+          >
+            Silenciar en la sombra
+          </button>
+          <button
+            type="button"
+            className={item}
+            onClick={() => onAction({ k: "ban", n: message.n, mins: 5 })}
+          >
+            Expulsar 5 minutos
+          </button>
+          <button
+            type="button"
+            className={item}
+            onClick={() => onAction({ k: "ban", n: message.n, mins: 60 })}
+          >
+            Expulsar 1 hora
+          </button>
+          <button
+            type="button"
+            className={`${item} text-bonchona-red`}
+            onClick={() => onAction({ k: "ban", n: message.n, mins: 0 })}
+          >
+            Expulsar siempre
+          </button>
+          <button
+            type="button"
+            className={item}
+            onClick={() => onAction({ k: "unban", n: message.n })}
+          >
+            Readmitir
+          </button>
+        </div>
       )}
     </div>
   );
