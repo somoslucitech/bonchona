@@ -27,6 +27,8 @@ export default function ChatPanel({ open, onClose }: Props) {
   const [mounted, setMounted] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [nick, setNick] = useState("");
+  // Se gasta en la primera conexion. Despues manda la cookie de pase.
+  const [turnstileToken, setTurnstileToken] = useState("");
   const panelRef = useRef<HTMLDivElement | null>(null);
   const reduceMotion = useReducedMotion();
 
@@ -54,7 +56,8 @@ export default function ChatPanel({ open, onClose }: Props) {
     };
   }, []);
 
-  const enter = useCallback((chosen: string) => {
+  const enter = useCallback((chosen: string, token: string) => {
+    setTurnstileToken(token);
     setNick(chosen);
     try {
       localStorage.setItem(NICK_STORAGE_KEY, chosen);
@@ -65,6 +68,7 @@ export default function ChatPanel({ open, onClose }: Props) {
 
   const changeNick = useCallback(() => {
     setNick("");
+    setTurnstileToken("");
     try {
       localStorage.removeItem(NICK_STORAGE_KEY);
     } catch {
@@ -135,6 +139,7 @@ export default function ChatPanel({ open, onClose }: Props) {
             {nick ? (
               <ChatRoom
                 nick={nick}
+                turnstileToken={turnstileToken}
                 onClose={onClose}
                 onChangeNick={changeNick}
               />

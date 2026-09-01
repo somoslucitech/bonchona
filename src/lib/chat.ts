@@ -78,6 +78,7 @@ function normalizeConfig(raw: unknown): ChatConfig {
     maxChars: clampInt(c.maxChars, CHAT_LIMITS.maxChars.min, CHAT_LIMITS.maxChars.max, d.maxChars),
     capacity: clampInt(c.capacity, CHAT_LIMITS.capacity.min, CHAT_LIMITS.capacity.max, d.capacity),
     blockLinks: bool(c.blockLinks, d.blockLinks),
+    requireTurnstile: bool(c.requireTurnstile, d.requireTurnstile),
     blockedWords: stringList(c.blockedWords, CHAT_LIMITS.maxBlockedWords, 40),
     // Los nicks reservados por defecto no se pueden perder editando la config:
     // sin ellos cualquiera podría hacerse pasar por la emisora.
@@ -347,3 +348,59 @@ export function chatWorkerBase(): string {
 export function chatSocketUrl(): string {
   return `${chatWorkerBase().replace(/^http/, "ws")}/ws`;
 }
+
+// ============================================================
+// Pase de acceso al chat
+//
+// Un token de Turnstile se canjea UNA sola vez. El cliente pide un ticket nuevo
+// en cada reconexión (caída de red, cambio de wifi, móvil que se bloquea), asi
+// que exigir un token en cada una fallaria a la primera y ademas dispararia las
+// llamadas a Turnstile.
+//
+// En su lugar, Turnstile se verifica al entrar y deja este pase: una cookie
+// firmada con el mismo AUTH_SECRET que dice "este navegador ya demostro no ser
+// un bot". No es una identidad ni da ningun permiso; solo evita repetir el
+// desafio. Las reconexiones lo presentan y no vuelven a molestar al usuario.
+// ============================================================
+
+export const CHAT_PASS_COOKIE = "bonchona_chat_pass";
+export const CHAT_PASS_TTL_MS = 12 * 60 * 60 * 1000;
+
+export async function signChatPass(expiresAt: number): Promise<string> {
+  const body = String(expiresAt);
+  const key = await getHmacKey();
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  return `${body}.${base64UrlEncode(signature)}`;
+}
+
+/** true solo si la firma cuadra y el pase no ha caducado. */
+export async function verifyChatPass(raw: string | undefined): Promise<boolean> {
+  if (!raw) return false;
+  const parts = raw.split(".");
+  if (parts.length !== 2) return false;
+  const [body, signature] = parts;
+
+  const expiresAt = Number(body);
+  if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) return false;
+
+  try {
+    const key = await getHmacKey();
+    return await crypto.subtle.verify(
+      "HMAC",
+      key,
+      base64UrlDecodeBytes(signature) as BufferSource,
+      new TextEncoder().encode(body)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function base64UrlDecodeBytes(value: string): Uint8Array {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+  return Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+}
+
+/** La accion que declara el widget y que el servidor exige en la respuesta. */
+export const TURNSTILE_ACTION = "chat";

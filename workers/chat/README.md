@@ -60,6 +60,45 @@ el comportamiento correcto, pero desconcierta un buen rato).
 En el sitio, `CHAT_WORKER_URL` debe apuntar a `http://127.0.0.1:8788` durante el
 desarrollo. El valor de producción está en el `wrangler.json` de la raíz.
 
+## Turnstile
+
+El chat exige a los visitantes (no a los moderadores) resolver un desafío invisible antes
+del primer mensaje. **No es redundante con estar alojado en Cloudflare**: el borde filtra
+tráfico y bots conocidos, pero no verifica que haya una persona detrás de una acción. Y
+sobre todo, el modo lento es **por nick**: sin nada que haga costoso crear un nick nuevo, un
+script genera cien y el límite de 30 s deja de significar nada. Turnstile es lo que le pone
+precio a esa identidad.
+
+Se puede apagar desde el panel (`Chat → Verificación anti-bots`) si estorba, con el aviso
+correspondiente.
+
+Detalles que importan:
+
+- El token se canjea **una sola vez**. Como el cliente pide un ticket nuevo en cada
+  reconexión, la primera verificación deja una cookie firmada (`bonchona_chat_pass`, 12 h,
+  HttpOnly, acotada a `/api/chat`) y las reconexiones se apoyan en ella. Sin eso, el chat se
+  caería en el primer cambio de wifi.
+- La validación en servidor comprueba `success`, **`action === "chat"`** y que `hostname`
+  esté en `TURNSTILE_HOSTNAMES`. Sin las dos últimas, un token obtenido en otra web serviría
+  para entrar aquí.
+- `TURNSTILE_HOSTNAMES` de producción **no debe incluir `localhost`**. El valor de
+  producción está en el `wrangler.json` de la raíz; el de desarrollo, en `.env.local`.
+
+### Crear el widget
+
+Este repo trae las **claves de prueba** de Cloudflare en `.env.local`, que siempre pasan y
+sirven para desarrollo. Para producción hay que crear el widget real:
+
+1. https://dash.cloudflare.com → Turnstile → Add widget.
+2. Modo **Managed**. Dominios: `bonchona.somoslucitech.workers.dev`, `bonchonaradio.com`,
+   `www.bonchonaradio.com` (y `localhost` solo si quieres usarlo también en desarrollo).
+3. Copia la **site key** a `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+4. Guarda la **secret key** como secreto, nunca en el repo:
+   `npx wrangler secret put TURNSTILE_SECRET`
+
+Si `TURNSTILE_SECRET` falta en producción y la verificación está exigida, la entrada al chat
+se rechaza con un 503. Es deliberado: fallar abierto en un chat anónimo es el error caro.
+
 ## Deploy
 
 ```bash

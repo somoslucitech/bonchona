@@ -8,6 +8,7 @@ import ChatModBar from "./ChatModBar";
 
 interface Props {
   nick: string;
+  turnstileToken: string;
   onClose: () => void;
   onChangeNick: () => void;
 }
@@ -19,8 +20,8 @@ interface Props {
  * cerrar el panel este componente se desmonta, el WebSocket se cierra y todo el
  * estado desaparece sin necesidad de resetearlo a mano.
  */
-export default function ChatRoom({ nick, onClose, onChangeNick }: Props) {
-  const chat = useChatSocket(nick);
+export default function ChatRoom({ nick, turnstileToken, onClose, onChangeNick }: Props) {
+  const chat = useChatSocket(nick, turnstileToken);
 
   const header = (
     <ChatHeader

@@ -15,7 +15,10 @@ declare global {
     SITE_URL?: string;
     /** Base del worker del chat en vivo (workers/chat). Sin barra final. */
     CHAT_WORKER_URL?: string;
-    TURNSTILE_SECRET_KEY?: string;
+    /** Clave secreta del widget de Turnstile (nombre canonico de la skill). */
+    TURNSTILE_SECRET?: string;
+    /** Hostnames aceptados en la respuesta de siteverify, separados por coma. */
+    TURNSTILE_HOSTNAMES?: string;
     /** Limitador nativo de Workers. Puede faltar si el entorno no lo soporta. */
     CHAT_TICKET_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import TurnstileGate from "./TurnstileGate";
 
 const field =
   "w-full h-11 px-4 rounded-xl bg-white/5 border border-white/10 focus:border-bonchona-red focus:outline-none text-[13px] text-white placeholder:text-zinc-600 font-medium transition-colors";
@@ -8,7 +9,7 @@ const label = "text-[9px] font-black uppercase tracking-widest text-zinc-500";
 
 interface Props {
   initialNick: string;
-  onEnter: (nick: string) => void;
+  onEnter: (nick: string, turnstileToken: string) => void;
 }
 
 /**
@@ -19,9 +20,13 @@ interface Props {
  *
  * Aquí no se pide ningún código de moderador. Quien modera lo hace por su
  * sesión del sitio: entra una vez con su cuenta y el chat lo reconoce solo.
+ *
+ * Turnstile va montado aquí, invisible: normalmente el visitante no ve nada y
+ * el token llega solo mientras escribe su nombre.
  */
 export default function NickGate({ initialNick, onEnter }: Props) {
   const [nick, setNick] = useState(initialNick);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -36,7 +41,7 @@ export default function NickGate({ initialNick, onEnter }: Props) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (valid) onEnter(trimmed);
+        if (valid) onEnter(trimmed, turnstileToken);
       }}
       className="flex-1 flex flex-col justify-center px-6 py-8 gap-5"
     >
@@ -66,6 +71,8 @@ export default function NickGate({ initialNick, onEnter }: Props) {
           Entre 2 y 20 caracteres. Puedes usar emojis.
         </p>
       </div>
+
+      <TurnstileGate onToken={setTurnstileToken} />
 
       <button
         type="submit"

@@ -45,7 +45,7 @@ export interface UseChatSocket {
  * viaja dentro de /api/now-playing, así que mantener mil sockets abiertos "por
  * si acaso" sería pagar por nada e impediría hibernar al Durable Object.
  */
-export function useChatSocket(nick: string): UseChatSocket {
+export function useChatSocket(nick: string, turnstileToken = ""): UseChatSocket {
   const [status, setStatus] = useState<ChatStatus>("connecting");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pin, setPin] = useState("");
@@ -68,6 +68,10 @@ export function useChatSocket(nick: string): UseChatSocket {
   // connect() se reprograma a sí misma al reintentar. La referencia rompe el
   // ciclo: la función no puede nombrarse dentro de su propio useCallback.
   const connectRef = useRef<() => void>(() => {});
+  // Un token de Turnstile se canjea una sola vez. Se manda en el primer intento
+  // y se descarta: las reconexiones se apoyan en la cookie de pase que dejo esa
+  // primera verificacion, asi que no hay que volver a molestar a nadie.
+  const pendingTokenRef = useRef(turnstileToken);
 
   const cleanup = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -173,7 +177,7 @@ export function useChatSocket(nick: string): UseChatSocket {
       const res = await fetch("/api/chat/ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nick, turnstileToken: "" }),
+        body: JSON.stringify({ nick, turnstileToken: pendingTokenRef.current }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
@@ -185,6 +189,7 @@ export function useChatSocket(nick: string): UseChatSocket {
         role?: string;
       };
 
+      pendingTokenRef.current = "";
       if (!aliveRef.current) return;
 
       if (!res.ok || !data.ok || !data.ticket || !data.wsUrl) {

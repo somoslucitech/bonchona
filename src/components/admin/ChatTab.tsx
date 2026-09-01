@@ -250,7 +250,20 @@ export default function ChatTab({
             onClick={() => patch({ blockLinks: !config.blockLinks })}
             label="Bloquear enlaces"
           />
+          <Toggle
+            on={config.requireTurnstile}
+            onClick={() => patch({ requireTurnstile: !config.requireTurnstile })}
+            label="Verificación anti-bots"
+          />
         </div>
+
+        {!config.requireTurnstile && (
+          <p className="text-[11px] text-amber-400 font-bold mb-6 leading-relaxed max-w-xl">
+            Sin verificación anti-bots, el modo lento deja de proteger: se aplica por nombre, y
+            crear nombres nuevos no le cuesta nada a un script. Vuelve a encenderla en cuanto
+            veas el primer spam.
+          </p>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div className="flex flex-col gap-2">

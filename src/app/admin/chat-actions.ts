@@ -95,7 +95,7 @@ export async function getChatHealthAction(): Promise<{ turnstile: boolean; secre
   if (!(await requireStaff())) return { turnstile: false, secret: false };
   const env = getCloudflareEnv();
   return {
-    turnstile: !!(env?.TURNSTILE_SECRET_KEY || process.env.TURNSTILE_SECRET_KEY),
+    turnstile: !!(env?.TURNSTILE_SECRET || process.env.TURNSTILE_SECRET),
     secret: !!(env?.AUTH_SECRET || process.env.AUTH_SECRET),
   };
 }

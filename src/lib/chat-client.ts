@@ -134,6 +134,21 @@ export interface ChatConfig {
   maxChars: number;
   capacity: number;
   blockLinks: boolean;
+  /**
+   * Exigir Turnstile antes del primer mensaje de un visitante.
+   *
+   * No es redundante con estar alojado en Cloudflare: el borde filtra trafico y
+   * bots conocidos, pero no verifica que haya una persona detras de una accion
+   * concreta. Y sobre todo, el modo lento es POR NICK: sin nada que haga
+   * costoso crear un nick nuevo, un script genera cien y el limite de 30s deja
+   * de significar nada. Turnstile es lo que le pone precio a esa identidad.
+   *
+   * Se deja apagable porque anade un script de terceros y un modo de fallo: si
+   * el desafio no carga, nadie entra. Apagarlo es una decision legitima en una
+   * comunidad pequena y vigilada, pero conviene volver a encenderlo en cuanto
+   * aparezca el primer spam.
+   */
+  requireTurnstile: boolean;
   blockedWords: string[];
   reservedNicks: string[];
 }
@@ -147,6 +162,7 @@ export const DEFAULT_CHAT_CONFIG: ChatConfig = {
   maxChars: 200,
   capacity: 1000,
   blockLinks: true,
+  requireTurnstile: true,
   blockedWords: [],
   reservedNicks: [
     "admin", "mod", "moderador", "bonchona", "bonchona radio",

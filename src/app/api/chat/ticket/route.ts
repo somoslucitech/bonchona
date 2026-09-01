@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getSession, canModerateChat } from "@/lib/auth";
 import { getCloudflareEnv } from "@/lib/cf-env";
 import {
@@ -9,6 +10,11 @@ import {
   nickKey,
   signChatTicket,
   chatSocketUrl,
+  signChatPass,
+  verifyChatPass,
+  CHAT_PASS_COOKIE,
+  CHAT_PASS_TTL_MS,
+  TURNSTILE_ACTION,
   NICK_ERROR_MESSAGES,
   TICKET_TTL_MS,
   type ChatRole,
@@ -30,6 +36,30 @@ function clientIp(request: Request): string {
   );
 }
 
+function turnstileSecret(): string | undefined {
+  const env = getCloudflareEnv();
+  return env?.TURNSTILE_SECRET || process.env.TURNSTILE_SECRET;
+}
+
+/**
+ * Hostnames desde los que aceptamos un desafío resuelto.
+ *
+ * Turnstile devuelve el dominio donde se resolvió el widget. Sin comprobarlo,
+ * alguien podría montar el mismo widget en otra web, recoger los tokens de sus
+ * visitantes y gastarlos aquí. En producción esta lista NO debe incluir
+ * localhost.
+ */
+function expectedHostnames(): Set<string> {
+  const env = getCloudflareEnv();
+  const raw = env?.TURNSTILE_HOSTNAMES || process.env.TURNSTILE_HOSTNAMES || "";
+  return new Set(
+    raw
+      .split(",")
+      .map((h) => h.trim())
+      .filter(Boolean)
+  );
+}
+
 /**
  * Freno de abuso por IP.
  *
@@ -44,9 +74,6 @@ function clientIp(request: Request): string {
  * El límite es holgado a propósito. En Venezuela es normal que decenas de
  * oyentes salgan por la misma IP pública (CGNAT del operador móvil), así que un
  * límite estrecho dejaría fuera a todo un barrio por culpa de una sola persona.
- *
- * Si el binding no existe (entornos donde no está soportado) no se bloquea a
- * nadie: preferimos un chat que funciona sin freno a uno que no abre.
  */
 async function withinRateLimit(request: Request): Promise<boolean> {
   const limiter = getCloudflareEnv()?.CHAT_TICKET_LIMITER;
@@ -60,37 +87,51 @@ async function withinRateLimit(request: Request): Promise<boolean> {
   }
 }
 
+type TurnstileResult = "ok" | "unconfigured" | "rejected";
+
 /**
- * Verificación de Turnstile.
+ * Verificación de Turnstile contra siteverify.
  *
- * Devuelve "unconfigured" cuando no hay clave secreta. Eso solo se tolera en
- * desarrollo: en producción se rechaza la petición, porque un chat anónimo sin
- * ninguna barrera anti-bot es una invitación al spam y fallar hacia el lado
- * abierto sería el error caro.
+ * No basta con `success`: se comprueba también que la acción sea la del chat y
+ * que el dominio esté en la lista. Sin esas dos, un token obtenido en otra web
+ * —o para otro formulario de este sitio— serviría para entrar aquí.
+ *
+ * Falla cerrado ante cualquier error de red o respuesta rara: un chat anónimo
+ * sin barrera anti-bot es una invitación al spam.
  */
-async function verifyTurnstile(token: string, ip: string): Promise<boolean | "unconfigured"> {
-  const env = getCloudflareEnv();
-  const secret = env?.TURNSTILE_SECRET_KEY || process.env.TURNSTILE_SECRET_KEY;
+async function verifyTurnstile(token: string, ip: string): Promise<TurnstileResult> {
+  const secret = turnstileSecret();
   if (!secret) return "unconfigured";
-  if (!token) return false;
+
+  const hostnames = expectedHostnames();
+  if (!token || token.length > 2048 || hostnames.size === 0) return "rejected";
 
   try {
-    const body = new FormData();
-    body.append("secret", secret);
-    body.append("response", token);
-    if (ip && ip !== "unknown") body.append("remoteip", ip);
-
     const res = await fetch(TURNSTILE_VERIFY_URL, {
       method: "POST",
-      body,
-      signal: AbortSignal.timeout(5000),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      signal: AbortSignal.timeout(10_000),
+      body: new URLSearchParams({
+        secret,
+        response: token,
+        ...(ip && ip !== "unknown" ? { remoteip: ip } : {}),
+      }),
     });
-    if (!res.ok) return false;
-    const data = (await res.json()) as { success?: boolean };
-    return data.success === true;
+    if (!res.ok) throw new Error(`siteverify ${res.status}`);
+
+    const result = (await res.json()) as {
+      success?: boolean;
+      action?: string;
+      hostname?: string;
+    };
+
+    if (!result.success) return "rejected";
+    if (result.action !== TURNSTILE_ACTION) return "rejected";
+    if (!result.hostname || !hostnames.has(result.hostname)) return "rejected";
+    return "ok";
   } catch (e) {
     console.error("Turnstile siteverify falló:", e);
-    return false;
+    return "rejected";
   }
 }
 
@@ -143,23 +184,36 @@ export async function POST(request: Request) {
 
   let role: ChatRole = "user";
   let kind: "admin" | "mod" | undefined;
+  let grantPass = false;
 
   if (canModerateChat(session)) {
     role = "mod";
     kind = session.user.role === "moderator" ? "mod" : "admin";
   } else {
-    const turnstile = await verifyTurnstile(token, clientIp(request));
-    if (turnstile === "unconfigured") {
-      // Se mira NODE_ENV y no la presencia del entorno de Cloudflare: desde que
-      // next.config.ts llama a initOpenNextCloudflareForDev, `next dev` también
-      // tiene bindings, así que su presencia ya no distingue producción.
-      if (process.env.NODE_ENV === "production") {
-        console.error("TURNSTILE_SECRET_KEY no configurado: se rechaza el acceso al chat.");
-        return bad("El chat todavía no está configurado. Inténtalo más tarde.", 503);
+    const cookieStore = await cookies();
+
+    // Un token de Turnstile se canjea una sola vez, así que las reconexiones se
+    // apoyan en el pase que dejó la primera verificación.
+    const yaVerificado = await verifyChatPass(cookieStore.get(CHAT_PASS_COOKIE)?.value);
+
+    if (config.requireTurnstile && !yaVerificado) {
+      const turnstile = await verifyTurnstile(token, clientIp(request));
+
+      if (turnstile === "unconfigured") {
+        // Se mira NODE_ENV y no la presencia del entorno de Cloudflare: desde
+        // que next.config.ts llama a initOpenNextCloudflareForDev, `next dev`
+        // también tiene bindings, así que su presencia ya no distingue
+        // producción.
+        if (process.env.NODE_ENV === "production") {
+          console.error("TURNSTILE_SECRET no configurado: se rechaza el acceso al chat.");
+          return bad("El chat todavía no está configurado. Inténtalo más tarde.", 503);
+        }
+        console.warn("Turnstile sin configurar: se omite la verificación (solo en desarrollo).");
+      } else if (turnstile === "rejected") {
+        return bad("No pudimos verificar que eres una persona. Recarga e inténtalo de nuevo.", 401);
+      } else {
+        grantPass = true;
       }
-      console.warn("Turnstile sin configurar: se omite la verificación (solo en desarrollo).");
-    } else if (!turnstile) {
-      return bad("No pudimos verificar que eres una persona. Recarga e inténtalo de nuevo.", 401);
     }
 
     // Mismo mensaje que un nombre reservado cualquiera: uno específico
@@ -177,7 +231,7 @@ export async function POST(request: Request) {
     ...(kind ? { k: kind } : {}),
   });
 
-  return NextResponse.json(
+  const response = NextResponse.json(
     {
       ok: true,
       ticket,
@@ -190,4 +244,18 @@ export async function POST(request: Request) {
     },
     { headers: { "Cache-Control": "private, no-store" } }
   );
+
+  if (grantPass) {
+    const expiresAt = Date.now() + CHAT_PASS_TTL_MS;
+    response.cookies.set(CHAT_PASS_COOKIE, await signChatPass(expiresAt), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      // Acotada a las rutas del chat: no viaja con cada visita al sitio.
+      path: "/api/chat",
+      maxAge: Math.floor(CHAT_PASS_TTL_MS / 1000),
+    });
+  }
+
+  return response;
 }
