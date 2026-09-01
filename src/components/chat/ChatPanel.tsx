@@ -27,7 +27,6 @@ export default function ChatPanel({ open, onClose }: Props) {
   const [mounted, setMounted] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [nick, setNick] = useState("");
-  const [modCode, setModCode] = useState("");
   const panelRef = useRef<HTMLDivElement | null>(null);
   const reduceMotion = useReducedMotion();
 
@@ -55,9 +54,8 @@ export default function ChatPanel({ open, onClose }: Props) {
     };
   }, []);
 
-  const enter = useCallback((chosen: string, code: string) => {
+  const enter = useCallback((chosen: string) => {
     setNick(chosen);
-    setModCode(code);
     try {
       localStorage.setItem(NICK_STORAGE_KEY, chosen);
     } catch {
@@ -67,7 +65,6 @@ export default function ChatPanel({ open, onClose }: Props) {
 
   const changeNick = useCallback(() => {
     setNick("");
-    setModCode("");
     try {
       localStorage.removeItem(NICK_STORAGE_KEY);
     } catch {
@@ -138,7 +135,6 @@ export default function ChatPanel({ open, onClose }: Props) {
             {nick ? (
               <ChatRoom
                 nick={nick}
-                modCode={modCode}
                 onClose={onClose}
                 onChangeNick={changeNick}
               />

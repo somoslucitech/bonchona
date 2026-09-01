@@ -8,7 +8,7 @@ import type { SessionRow } from '@/lib/sessions';
 import type { Invite } from '@/lib/invites';
 import type { AnalyticsSummary } from '@/lib/analytics';
 import type { DemoPage } from '@/lib/demos';
-import type { ChatConfig, ChatModerator, ChatAuditEntry } from '@/lib/chat-client';
+import type { ChatConfig, ChatAuditEntry } from '@/lib/chat-client';
 import AnalyticsTab from '@/components/admin/AnalyticsTab';
 import DemosTab from '@/components/admin/DemosTab';
 import ChatTab from '@/components/admin/ChatTab';
@@ -49,7 +49,6 @@ interface AdminClientProps {
   initialDemos: DemoPage;
   initialChatConfig: ChatConfig;
   initialChatPin: string;
-  initialChatModerators: ChatModerator[];
   initialChatAudit: ChatAuditEntry[];
 }
 
@@ -69,7 +68,6 @@ export default function AdminClient({
   initialDemos,
   initialChatConfig,
   initialChatPin,
-  initialChatModerators,
   initialChatAudit,
 }: AdminClientProps) {
   const [activeTab, setActiveTab] = useState<'programs' | 'demos' | 'rates' | 'settings' | 'chat' | 'analytics' | 'usuarios'>('programs');
@@ -797,9 +795,7 @@ export default function AdminClient({
           <ChatTab
             initialConfig={initialChatConfig}
             initialPin={initialChatPin}
-            initialModerators={initialChatModerators}
             initialAudit={initialChatAudit}
-            role={role}
             showStatus={showStatus}
           />
         )}
@@ -829,6 +825,7 @@ export default function AdminClient({
                   className="p-4 rounded-xl bg-white/5 border border-white/10 focus:border-bonchona-red focus:outline-none transition-all text-sm font-bold text-white"
                 >
                   <option value="editor">Editor</option>
+                  <option value="moderator">Moderador de chat</option>
                   <option value="owner">Administrador</option>
                 </select>
                 <button

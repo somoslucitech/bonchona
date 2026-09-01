@@ -1,13 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import {
-  saveChatConfigAction,
-  saveChatPinAction,
-  createChatModeratorAction,
-  revokeChatModeratorAction,
-} from '@/app/admin/chat-actions';
-import { CHAT_LIMITS, type ChatConfig, type ChatModerator, type ChatAuditEntry } from '@/lib/chat-client';
+import { saveChatConfigAction, saveChatPinAction } from '@/app/admin/chat-actions';
+import { CHAT_LIMITS, type ChatConfig, type ChatAuditEntry } from '@/lib/chat-client';
 
 const field =
   'p-4 rounded-xl bg-white/5 border border-white/10 focus:border-bonchona-red focus:outline-none transition-all text-sm font-bold text-white placeholder-zinc-700';
@@ -47,26 +42,18 @@ const ACCION_LABEL: Record<string, string> = {
 interface Props {
   initialConfig: ChatConfig;
   initialPin: string;
-  initialModerators: ChatModerator[];
   initialAudit: ChatAuditEntry[];
-  role: 'owner' | 'editor';
   showStatus: (text: string, type?: 'success' | 'error') => void;
 }
 
 export default function ChatTab({
   initialConfig,
   initialPin,
-  initialModerators,
   initialAudit,
-  role,
   showStatus,
 }: Props) {
   const [config, setConfig] = useState<ChatConfig>(initialConfig);
   const [pin, setPin] = useState(initialPin);
-  const [moderators, setModerators] = useState(initialModerators);
-  const [newModNick, setNewModNick] = useState('');
-  // El código en claro solo existe en este momento: después solo queda el hash.
-  const [freshCode, setFreshCode] = useState<{ nick: string; code: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   const patch = (changes: Partial<ChatConfig>) => setConfig((c) => ({ ...c, ...changes }));
@@ -92,32 +79,6 @@ export default function ChatTab({
         res.success ? (pin.trim() ? 'Mensaje fijado.' : 'Mensaje fijado retirado.') : (res.error ?? 'Error'),
         res.success ? 'success' : 'error'
       );
-    });
-  };
-
-  const addModerator = () => {
-    startTransition(async () => {
-      const res = await createChatModeratorAction(newModNick);
-      if (res.success && res.code) {
-        setFreshCode({ nick: newModNick.trim(), code: res.code });
-        setModerators(res.moderators ?? moderators);
-        setNewModNick('');
-        showStatus('Moderador añadido. Copia su código ahora.');
-      } else {
-        showStatus(res.error ?? 'No se pudo añadir.', 'error');
-      }
-    });
-  };
-
-  const revoke = (mod: ChatModerator) => {
-    startTransition(async () => {
-      const res = await revokeChatModeratorAction(mod.nickLower);
-      if (res.success) {
-        setModerators(res.moderators ?? moderators);
-        showStatus(`${mod.nick} ya no es moderador.`);
-      } else {
-        showStatus(res.error ?? 'No se pudo revocar.', 'error');
-      }
     });
   };
 
@@ -357,87 +318,6 @@ export default function ChatTab({
           </button>
         </div>
       </div>
-
-      {/* --- Moderadores (solo owner) --- */}
-      {role === 'owner' && (
-        <div className={card}>
-          <h3 className="text-lg font-black italic uppercase tracking-tight text-white mb-2">
-            Moderadores del chat
-          </h3>
-          <p className="text-zinc-500 text-xs leading-relaxed mb-6 max-w-xl font-medium">
-            Para locutores que no tienen cuenta del panel. Entran al chat con su nombre y su
-            código. Los usuarios del panel ya moderan sin necesidad de estar aquí.
-          </p>
-
-          {freshCode && (
-            <div className="mb-6 p-5 rounded-2xl bg-bonchona-purple/20 border border-bonchona-purple/40">
-              <p className={label}>Código de {freshCode.nick}</p>
-              <p className="text-2xl font-black font-mono tracking-[0.3em] text-white my-2">
-                {freshCode.code}
-              </p>
-              <p className="text-[11px] text-zinc-400 font-medium">
-                Cópialo y dáselo ahora. No se guarda en claro: si se pierde, habrá que generar
-                uno nuevo.
-              </p>
-              <button
-                type="button"
-                onClick={() => setFreshCode(null)}
-                className="mt-3 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
-              >
-                Ya lo copié
-              </button>
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-3 mb-6 max-w-2xl">
-            <input
-              type="text"
-              value={newModNick}
-              maxLength={20}
-              onChange={(e) => setNewModNick(e.target.value)}
-              placeholder="Nombre del locutor en el chat"
-              className={`${field} flex-1`}
-            />
-            <button
-              type="button"
-              disabled={pending || newModNick.trim().length < 2}
-              onClick={addModerator}
-              className="px-6 py-3 rounded-full bg-bonchona-red text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-30 transition-transform hover:scale-[1.02]"
-            >
-              Añadir
-            </button>
-          </div>
-
-          {moderators.length === 0 ? (
-            <p className="text-[11px] text-zinc-600 font-medium">Todavía no hay moderadores.</p>
-          ) : (
-            <div className="space-y-2">
-              {moderators.map((mod) => (
-                <div
-                  key={mod.nickLower}
-                  className="flex items-center justify-between gap-4 p-4 rounded-xl bg-white/5 border border-white/10"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-white truncate">{mod.nick}</p>
-                    <p className="text-[10px] text-zinc-600 font-medium">
-                      Alta {fmtDate(mod.createdAt)}
-                      {mod.lastSeenAt ? ` · Última vez ${fmtDate(mod.lastSeenAt)}` : ' · Nunca ha entrado'}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => revoke(mod)}
-                    className="shrink-0 text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-bonchona-red transition-colors disabled:opacity-50"
-                  >
-                    Revocar
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* --- Auditoría --- */}
       <div className={card}>

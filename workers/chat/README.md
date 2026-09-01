@@ -15,10 +15,17 @@ Este worker **no conoce la sesión del sitio**. La cookie `bonchona_session` es 
 no viaja a otro hostname. En su lugar:
 
 1. El navegador pide un ticket a `POST /api/chat/ticket` en el sitio (Next).
-2. Next verifica Turnstile, valida el nick, resuelve el rol y firma un ticket HMAC de 60 s
-   con `AUTH_SECRET` (ver `src/lib/chat.ts`).
+2. Next aplica el límite por IP, verifica Turnstile, valida el nick, resuelve el rol y firma
+   un ticket HMAC de 60 s con `AUTH_SECRET` (ver `src/lib/chat.ts`).
 3. El cliente abre `wss://…/ws?t=<ticket>`.
 4. Aquí solo se verifica la firma: ni Turnstile, ni sesión, ni consultas de usuario.
+
+**Quién modera.** El rol sale de la cookie de sesión del sitio: cualquiera con cuenta en el
+proyecto (`owner`, `editor` o `moderator`) modera el chat. No hay ningún código ni secreto
+que escribir. Hubo un sistema de códigos por nick y se retiró en la migración `0008`: un
+código que se comparte por WhatsApp, no caduca y no se rota es un secreto portador, y quien
+lo tuviera seguiría siendo moderador hasta que alguien se diera cuenta. El rol `moderator`
+solo sirve para eso: quien lo tiene no ve el panel de admin.
 
 Por eso **`AUTH_SECRET` debe ser exactamente el mismo** en los dos workers.
 
@@ -76,5 +83,5 @@ filas escritas al día** y **13.000 GB-s al día**.
 - Por encima de 150 conectados los mensajes se difunden en lotes de 200 ms en vez de uno a
   uno, para no hacer miles de `send()` por segundo.
 
-Solo en D1 viven los moderadores (`chat_moderators`), la auditoría (`chat_audit`) y la
+Solo en D1 viven la auditoría (`chat_audit`), los usuarios que pueden moderar (`users`) y la
 configuración (`settings`), que son pocas filas y tienen que durar.

@@ -4,7 +4,6 @@ import {
   DEFAULT_CHAT_CONFIG,
   type ChatConfig,
   type ChatSlot,
-  type ChatModerator,
   type ChatAuditEntry,
 } from "./chat-client";
 import { getSetting, setSetting } from "./settings";
@@ -13,7 +12,7 @@ import { vetMinutesOfDay } from "./analytics";
 
 // Se reexportan para que el código de servidor siga importando todo de aquí.
 export { CHAT_LIMITS, DEFAULT_CHAT_CONFIG };
-export type { ChatConfig, ChatSlot, ChatModerator, ChatAuditEntry };
+export type { ChatConfig, ChatSlot, ChatAuditEntry };
 
 // ============================================================
 // Configuración del chat
@@ -220,156 +219,47 @@ export const NICK_ERROR_MESSAGES: Record<NickError, string> = {
 };
 
 // ============================================================
-// Moderadores sin cuenta (locutores)
+// Nombres del equipo
+//
+// Antes esto era una tabla de moderadores con un codigo compartido. Se elimino
+// entera (migracion 0008): un codigo que viaja por WhatsApp, no caduca y no se
+// rota es un secreto portador, y sustituirlo por un rol dentro del login que ya
+// existia no anade ninguna via de autenticacion nueva que auditar.
 // ============================================================
 
-
-/** Sin vocales ni caracteres ambiguos (0/O, 1/I/L): estos códigos se dictan por teléfono. */
-const CODE_ALPHABET = "23456789BCDFGHJKMNPQRSTVWXYZ";
-
-export function generateModeratorCode(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(8));
-  const chars = [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]);
-  return `${chars.slice(0, 4).join("")}-${chars.slice(4).join("")}`;
-}
-
-function authSecret(): string {
-  const env = getCloudflareEnv();
-  return env?.AUTH_SECRET || process.env.AUTH_SECRET || "";
-}
-
 /**
- * Hash del código con el mismo enfoque que `hashIp` en /api/demos: SHA-256 con
- * AUTH_SECRET como sal. El código en claro solo existe una vez, cuando el owner
- * lo genera; después ni nosotros podemos recuperarlo.
+ * Nombres que no puede usar un visitante porque pertenecen al equipo.
+ *
+ * Un moderador se distingue por su insignia, no por su nombre, asi que esto no
+ * es lo que impide suplantarlo. Es lo que evita la confusion de tener dos
+ * "DJ Andre" hablando a la vez en mitad de una transmision.
+ *
+ * El mensaje de error es el mismo que el de un nombre reservado cualquiera, a
+ * proposito: decir "ese nombre es de un moderador" convertiria el formulario en
+ * un buscador de quien es del equipo.
  */
-export async function hashModeratorCode(nickLower: string, code: string): Promise<string> {
-  const material = `chatmod|${nickLower}|${code.trim().toUpperCase()}|${authSecret()}`;
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/** Comparación en tiempo constante, para no filtrar el código por temporización. */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-export async function listModerators(includeRevoked = false): Promise<ChatModerator[]> {
+export async function listStaffNickKeys(): Promise<Set<string>> {
   const env = getCloudflareEnv();
-  if (!env?.DB) return [];
-  const where = includeRevoked ? "" : "WHERE revoked_at IS NULL ";
+  if (!env?.DB) return new Set();
   try {
     const { results } = await env.DB.prepare(
-      `SELECT nick, nick_lower, created_at, created_by, last_seen_at, revoked_at
-       FROM chat_moderators ${where}ORDER BY created_at DESC`
-    ).all<{
-      nick: string; nick_lower: string; created_at: number;
-      created_by: string | null; last_seen_at: number | null; revoked_at: number | null;
-    }>();
-    return (results ?? []).map((r) => ({
-      nick: r.nick,
-      nickLower: r.nick_lower,
-      createdAt: r.created_at,
-      createdBy: r.created_by,
-      lastSeenAt: r.last_seen_at,
-      revokedAt: r.revoked_at,
-    }));
+      "SELECT name, email FROM users WHERE status = 'active'"
+    ).all<{ name: string | null; email: string }>();
+
+    const keys = new Set<string>();
+    for (const row of results ?? []) {
+      const nombre = row.name?.trim();
+      if (nombre) keys.add(nickKey(nombre));
+      // Tambien la parte local del correo: si alguien se llama "andre" en
+      // Google, "andre" no deberia poder usarlo un visitante cualquiera.
+      const local = row.email.split("@")[0];
+      if (local) keys.add(nickKey(local));
+    }
+    keys.delete("");
+    return keys;
   } catch (e) {
-    console.error("Error listando moderadores del chat:", e);
-    return [];
-  }
-}
-
-/** Devuelve el código en claro UNA sola vez; a partir de ahí solo existe el hash. */
-export async function createModerator(
-  rawNick: string,
-  createdBy: string | null
-): Promise<{ moderator: ChatModerator; code: string } | { error: string }> {
-  const env = getCloudflareEnv();
-  if (!env?.DB) return { error: "Base de datos no disponible." };
-
-  const nick = normalizeNick(rawNick);
-  const length = [...nick].length;
-  if (!nick || length < NICK_MIN || length > NICK_MAX) {
-    return { error: NICK_ERROR_MESSAGES.length };
-  }
-  if (INVISIBLE_RE.test(nick)) return { error: NICK_ERROR_MESSAGES.invisible };
-
-  const nickLower = nick.toLowerCase();
-  const code = generateModeratorCode();
-  const codeHash = await hashModeratorCode(nickLower, code);
-  const now = Date.now();
-
-  try {
-    // Reactivar un nick revocado en vez de fallar por clave duplicada: al owner
-    // le interesa "volver a dar de alta a este locutor", no un error opaco.
-    await env.DB.prepare(
-      `INSERT INTO chat_moderators (nick_lower, nick, code_hash, created_at, created_by)
-       VALUES (?, ?, ?, ?, ?)
-       ON CONFLICT(nick_lower) DO UPDATE SET
-         nick = excluded.nick, code_hash = excluded.code_hash,
-         created_at = excluded.created_at, created_by = excluded.created_by,
-         revoked_at = NULL`
-    ).bind(nickLower, nick, codeHash, now, createdBy).run();
-  } catch (e) {
-    console.error("Error creando moderador del chat:", e);
-    return { error: "No se pudo guardar el moderador." };
-  }
-
-  return {
-    code,
-    moderator: { nick, nickLower, createdAt: now, createdBy, lastSeenAt: null, revokedAt: null },
-  };
-}
-
-export async function revokeModerator(nickLower: string): Promise<boolean> {
-  const env = getCloudflareEnv();
-  if (!env?.DB) return false;
-  try {
-    await env.DB.prepare("UPDATE chat_moderators SET revoked_at = ? WHERE nick_lower = ?")
-      .bind(Date.now(), nickLower.toLowerCase()).run();
-    return true;
-  } catch (e) {
-    console.error("Error revocando moderador del chat:", e);
-    return false;
-  }
-}
-
-/** ¿Este nick + código corresponde a un moderador activo? */
-export async function verifyModeratorCode(nick: string, code: string): Promise<boolean> {
-  const env = getCloudflareEnv();
-  if (!env?.DB || !code) return false;
-  const nickLower = normalizeNick(nick).toLowerCase();
-  try {
-    const row = await env.DB
-      .prepare("SELECT code_hash FROM chat_moderators WHERE nick_lower = ? AND revoked_at IS NULL")
-      .bind(nickLower).first<{ code_hash: string }>();
-    if (!row) return false;
-    const attempt = await hashModeratorCode(nickLower, code);
-    if (!timingSafeEqual(attempt, row.code_hash)) return false;
-    await env.DB.prepare("UPDATE chat_moderators SET last_seen_at = ? WHERE nick_lower = ?")
-      .bind(Date.now(), nickLower).run();
-    return true;
-  } catch (e) {
-    console.error("Error verificando código de moderador:", e);
-    return false;
-  }
-}
-
-/** Un nick registrado como moderador no lo puede usar un visitante cualquiera. */
-export async function isModeratorNick(nick: string): Promise<boolean> {
-  const env = getCloudflareEnv();
-  if (!env?.DB) return false;
-  try {
-    const row = await env.DB
-      .prepare("SELECT 1 AS ok FROM chat_moderators WHERE nick_lower = ? AND revoked_at IS NULL")
-      .bind(normalizeNick(nick).toLowerCase()).first<{ ok: number }>();
-    return !!row;
-  } catch {
-    return false;
+    console.error("Error leyendo los nombres del equipo:", e);
+    return new Set();
   }
 }
 

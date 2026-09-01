@@ -8,7 +8,7 @@ const label = "text-[9px] font-black uppercase tracking-widest text-zinc-500";
 
 interface Props {
   initialNick: string;
-  onEnter: (nick: string, modCode: string) => void;
+  onEnter: (nick: string) => void;
 }
 
 /**
@@ -16,11 +16,12 @@ interface Props {
  *
  * Sin cuenta y sin foto de perfil, por decisión de producto. El nombre se
  * recuerda en el navegador para no tener que escribirlo cada vez.
+ *
+ * Aquí no se pide ningún código de moderador. Quien modera lo hace por su
+ * sesión del sitio: entra una vez con su cuenta y el chat lo reconoce solo.
  */
 export default function NickGate({ initialNick, onEnter }: Props) {
   const [nick, setNick] = useState(initialNick);
-  const [modCode, setModCode] = useState("");
-  const [showModCode, setShowModCode] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function NickGate({ initialNick, onEnter }: Props) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        if (valid) onEnter(trimmed, modCode.trim());
+        if (valid) onEnter(trimmed);
       }}
       className="flex-1 flex flex-col justify-center px-6 py-8 gap-5"
     >
@@ -65,31 +66,6 @@ export default function NickGate({ initialNick, onEnter }: Props) {
           Entre 2 y 20 caracteres. Puedes usar emojis.
         </p>
       </div>
-
-      {showModCode ? (
-        <div className="space-y-2">
-          <label htmlFor="chat-mod-code" className={label}>
-            Código de moderador
-          </label>
-          <input
-            id="chat-mod-code"
-            value={modCode}
-            onChange={(e) => setModCode(e.target.value.toUpperCase())}
-            maxLength={12}
-            placeholder="XXXX-XXXX"
-            autoComplete="off"
-            className={`${field} font-mono tracking-widest`}
-          />
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setShowModCode(true)}
-          className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-bonchona-red transition-colors self-start"
-        >
-          Soy moderador
-        </button>
-      )}
 
       <button
         type="submit"

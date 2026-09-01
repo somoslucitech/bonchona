@@ -79,3 +79,29 @@ export async function getSession(): Promise<AuthSession | null> {
 
   return { sessionId, user };
 }
+
+// ============================================================
+// Autorizacion
+//
+// Existen porque al anadir el rol `moderator` toda comprobacion del estilo
+// `if (!session)` paso a ser un agujero: un moderador del chat tendria acceso
+// a programas, tarifas, ajustes y a los demos con datos personales de artistas.
+// La pregunta correcta nunca es "hay sesion", sino "que puede hacer esta".
+// ============================================================
+
+/** Gestion de usuarios e invitaciones. */
+export function isOwner(session: AuthSession | null): session is AuthSession {
+  return !!session && session.user.role === "owner";
+}
+
+/** Operar el panel: contenido, tarifas, ajustes, demos. NO los moderadores. */
+export function isStaff(session: AuthSession | null): session is AuthSession {
+  return !!session && (session.user.role === "owner" || session.user.role === "editor");
+}
+
+/** Moderar el chat en vivo. Todo el equipo puede, moderadores incluidos. */
+export function canModerateChat(session: AuthSession | null): session is AuthSession {
+  if (!session) return false;
+  const role = session.user.role;
+  return role === "owner" || role === "editor" || role === "moderator";
+}

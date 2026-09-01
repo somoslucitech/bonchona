@@ -45,7 +45,7 @@ export interface UseChatSocket {
  * viaja dentro de /api/now-playing, así que mantener mil sockets abiertos "por
  * si acaso" sería pagar por nada e impediría hibernar al Durable Object.
  */
-export function useChatSocket(nick: string, modCode: string): UseChatSocket {
+export function useChatSocket(nick: string): UseChatSocket {
   const [status, setStatus] = useState<ChatStatus>("connecting");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pin, setPin] = useState("");
@@ -173,7 +173,7 @@ export function useChatSocket(nick: string, modCode: string): UseChatSocket {
       const res = await fetch("/api/chat/ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nick, modCode: modCode || undefined, turnstileToken: "" }),
+        body: JSON.stringify({ nick, turnstileToken: "" }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
@@ -243,7 +243,7 @@ export function useChatSocket(nick: string, modCode: string): UseChatSocket {
     socket.onerror = () => {
       // onclose siempre llega detrás y es quien decide qué hacer.
     };
-  }, [nick, modCode]);
+  }, [nick]);
 
   useEffect(() => {
     connectRef.current = () => void connect();

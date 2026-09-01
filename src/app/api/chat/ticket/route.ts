@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, canModerateChat } from "@/lib/auth";
 import { getCloudflareEnv } from "@/lib/cf-env";
 import {
   getChatConfig,
   getChatOpenState,
   validateNick,
-  isModeratorNick,
-  verifyModeratorCode,
+  listStaffNickKeys,
+  nickKey,
   signChatTicket,
   chatSocketUrl,
   NICK_ERROR_MESSAGES,
@@ -20,6 +20,44 @@ const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/sit
 
 function bad(error: string, status = 400) {
   return NextResponse.json({ ok: false, error }, { status });
+}
+
+function clientIp(request: Request): string {
+  return (
+    request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-forwarded-for") ??
+    "unknown"
+  );
+}
+
+/**
+ * Freno de abuso por IP.
+ *
+ * Emitir un ticket cuesta una verificación de Turnstile, una consulta de sesión
+ * y varias lecturas de D1. Sin límite, cualquiera puede convertir este endpoint
+ * en un amplificador de coste contra la base. Usa el limitador nativo de
+ * Workers, que no toca ni D1 ni almacenamiento.
+ *
+ * Es por centro de datos y best-effort: protege el gasto, no es un control de
+ * acceso. Lo que decide quién modera es la cookie de sesión firmada.
+ *
+ * El límite es holgado a propósito. En Venezuela es normal que decenas de
+ * oyentes salgan por la misma IP pública (CGNAT del operador móvil), así que un
+ * límite estrecho dejaría fuera a todo un barrio por culpa de una sola persona.
+ *
+ * Si el binding no existe (entornos donde no está soportado) no se bloquea a
+ * nadie: preferimos un chat que funciona sin freno a uno que no abre.
+ */
+async function withinRateLimit(request: Request): Promise<boolean> {
+  const limiter = getCloudflareEnv()?.CHAT_TICKET_LIMITER;
+  if (!limiter) return true;
+  try {
+    const { success } = await limiter.limit({ key: clientIp(request) });
+    return success;
+  } catch (e) {
+    console.warn("El limitador del chat no respondió:", e);
+    return true;
+  }
 }
 
 /**
@@ -65,7 +103,7 @@ async function verifyTurnstile(token: string, ip: string): Promise<boolean | "un
  * subrequests en cada conexión.
  */
 export async function POST(request: Request) {
-  let payload: { nick?: unknown; turnstileToken?: unknown; modCode?: unknown };
+  let payload: { nick?: unknown; turnstileToken?: unknown };
   try {
     payload = (await request.json()) as typeof payload;
   } catch {
@@ -74,7 +112,10 @@ export async function POST(request: Request) {
 
   const rawNick = typeof payload.nick === "string" ? payload.nick : "";
   const token = typeof payload.turnstileToken === "string" ? payload.turnstileToken : "";
-  const modCode = typeof payload.modCode === "string" ? payload.modCode.trim() : "";
+
+  if (!(await withinRateLimit(request))) {
+    return bad("Demasiados intentos. Espera un momento.", 429);
+  }
 
   const config = await getChatConfig();
   const openState = getChatOpenState(config);
@@ -96,24 +137,18 @@ export async function POST(request: Request) {
   if ("error" in validation) return bad(NICK_ERROR_MESSAGES[validation.error]);
   const nick = validation.nick;
 
-  // Un owner/editor del panel es moderador sin tener que escribir ningún
-  // código: ya demostró quién es con la cookie de sesión.
+  // El rol de moderador sale de la cookie de sesión firmada, la misma del
+  // panel. No hay ningún secreto que escribir aquí, ni que se pueda compartir.
   const session = await getSession();
-  const isAdmin = !!session && (session.user.role === "owner" || session.user.role === "editor");
 
   let role: ChatRole = "user";
   let kind: "admin" | "mod" | undefined;
 
-  if (isAdmin) {
+  if (canModerateChat(session)) {
     role = "mod";
-    kind = "admin";
+    kind = session.user.role === "moderator" ? "mod" : "admin";
   } else {
-    const ip =
-      request.headers.get("cf-connecting-ip") ??
-      request.headers.get("x-forwarded-for") ??
-      "unknown";
-
-    const turnstile = await verifyTurnstile(token, ip);
+    const turnstile = await verifyTurnstile(token, clientIp(request));
     if (turnstile === "unconfigured") {
       // Se mira NODE_ENV y no la presencia del entorno de Cloudflare: desde que
       // next.config.ts llama a initOpenNextCloudflareForDev, `next dev` también
@@ -127,16 +162,10 @@ export async function POST(request: Request) {
       return bad("No pudimos verificar que eres una persona. Recarga e inténtalo de nuevo.", 401);
     }
 
-    if (modCode) {
-      if (!(await verifyModeratorCode(nick, modCode))) {
-        return bad("Ese código de moderador no es válido para ese nombre.", 401);
-      }
-      role = "mod";
-      kind = "mod";
-    } else if (await isModeratorNick(nick)) {
-      // El nick pertenece a un locutor: sin su código no se puede usar, o
-      // cualquiera podría presentarse como el equipo de la emisora.
-      return bad("Ese nombre pertenece a un moderador. Usa tu código o elige otro.", 403);
+    // Mismo mensaje que un nombre reservado cualquiera: uno específico
+    // convertiría este formulario en un buscador de quién es del equipo.
+    if ((await listStaffNickKeys()).has(nickKey(nick))) {
+      return bad(NICK_ERROR_MESSAGES.reserved);
     }
   }
 

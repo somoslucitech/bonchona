@@ -1,11 +1,12 @@
 import { getPrograms, getRotativeRates, getSiteSettings } from "@/lib/db";
 import { getAnalytics } from "@/lib/analytics";
 import { listDemos } from "@/lib/demos";
-import { getChatConfig, getChatPin, listModerators, listChatAudit } from "@/lib/chat";
+import { getChatConfig, getChatPin, listChatAudit } from "@/lib/chat";
 import { getSession } from "@/lib/auth";
 import { listUsersAction } from "@/app/admin/actions";
 import AdminClient from "@/components/AdminClient";
 import AdminLogin from "@/components/AdminLogin";
+import ModeratorHome from "@/components/ModeratorHome";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,13 @@ export default async function AdminPage({
     return <AdminLogin error={error} />;
   }
 
+  // Un moderador de chat no tiene nada que hacer en el panel: su cuenta solo
+  // sirve para que el chat lo reconozca. Se corta aquí, antes de leer nada, y
+  // así ni siquiera se consultan los datos que no le corresponden.
+  if (session.user.role === "moderator") {
+    return <ModeratorHome name={session.user.name ?? session.user.email} />;
+  }
+
   const [programs, rotativeRates, settings, analytics, demos, chatConfig, chatPin, chatAudit] =
     await Promise.all([
       getPrograms(),
@@ -33,10 +41,7 @@ export default async function AdminPage({
       listChatAudit(80),
     ]);
 
-  const isOwner = session.user.role === "owner";
-  const usersData = isOwner ? await listUsersAction() : null;
-  // La lista de moderadores solo la ve el owner, igual que la de usuarios.
-  const chatModerators = isOwner ? await listModerators() : [];
+  const usersData = session.user.role === "owner" ? await listUsersAction() : null;
 
   return (
     <AdminClient
@@ -50,7 +55,6 @@ export default async function AdminPage({
       initialDemos={demos}
       initialChatConfig={chatConfig}
       initialChatPin={chatPin}
-      initialChatModerators={chatModerators}
       initialChatAudit={chatAudit}
     />
   );

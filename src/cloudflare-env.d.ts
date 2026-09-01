@@ -16,5 +16,7 @@ declare global {
     /** Base del worker del chat en vivo (workers/chat). Sin barra final. */
     CHAT_WORKER_URL?: string;
     TURNSTILE_SECRET_KEY?: string;
+    /** Limitador nativo de Workers. Puede faltar si el entorno no lo soporta. */
+    CHAT_TICKET_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   }
 }

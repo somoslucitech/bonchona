@@ -165,15 +165,6 @@ export const CHAT_LIMITS = {
   maxReservedNicks: 100,
 } as const;
 
-export interface ChatModerator {
-  nick: string;
-  nickLower: string;
-  createdAt: number;
-  createdBy: string | null;
-  lastSeenAt: number | null;
-  revokedAt: number | null;
-}
-
 export interface ChatAuditEntry {
   id: string;
   ts: number;

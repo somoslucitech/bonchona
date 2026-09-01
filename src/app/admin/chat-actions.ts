@@ -1,37 +1,18 @@
 'use server';
 
-import { getSession } from "@/lib/auth";
+import { getSession, isStaff } from "@/lib/auth";
 import { getCloudflareEnv } from "@/lib/cf-env";
-import {
-  getChatConfig,
-  saveChatConfig,
-  saveChatPin,
-  createModerator,
-  revokeModerator,
-  listModerators,
-  chatWorkerBase,
-  type ChatConfig,
-  type ChatModerator,
-} from "@/lib/chat";
+import { getChatConfig, saveChatConfig, saveChatPin, chatWorkerBase, type ChatConfig } from "@/lib/chat";
 
 /**
- * Cualquier miembro activo del panel puede operar el chat del día a día
- * (encenderlo, ajustar el modo lento, fijar un mensaje). Dar de alta o revocar
- * moderadores queda reservado al owner, igual que la gestión de usuarios.
+ * Configurar el chat es cosa del equipo del panel (owner o editor). Un usuario
+ * con rol `moderator` modera la sala en vivo, pero no toca sus ajustes: no
+ * puede encenderla, cambiar el aforo ni editar la lista negra.
  */
 async function requireStaff() {
   const session = await getSession();
-  if (!session) {
+  if (!isStaff(session)) {
     console.warn("Blocked unauthorized chat admin call");
-    return null;
-  }
-  return session;
-}
-
-async function requireOwner() {
-  const session = await getSession();
-  if (session?.user.role !== "owner") {
-    console.warn("Blocked non-owner chat moderator call");
     return null;
   }
   return session;
@@ -87,45 +68,6 @@ export async function saveChatPinAction(
     console.error("Error guardando el mensaje fijado:", e);
     return { success: false, error: "No se pudo guardar." };
   }
-}
-
-export async function listChatModeratorsAction(): Promise<ChatModerator[]> {
-  if (!(await requireOwner())) return [];
-  return listModerators();
-}
-
-/**
- * Da de alta un moderador y devuelve su código EN CLARO una única vez.
- *
- * El código no se puede recuperar después: solo se guarda su hash. Si el
- * locutor lo pierde, se le genera otro.
- */
-export async function createChatModeratorAction(
-  nick: string
-): Promise<{ success: boolean; code?: string; moderators?: ChatModerator[]; error?: string }> {
-  const session = await requireOwner();
-  if (!session) return { success: false, error: "Solo el owner puede añadir moderadores." };
-
-  const result = await createModerator(typeof nick === "string" ? nick : "", session.user.id);
-  if ("error" in result) return { success: false, error: result.error };
-
-  return { success: true, code: result.code, moderators: await listModerators() };
-}
-
-export async function revokeChatModeratorAction(
-  nickLower: string
-): Promise<{ success: boolean; moderators?: ChatModerator[]; error?: string }> {
-  if (!(await requireOwner())) {
-    return { success: false, error: "Solo el owner puede revocar moderadores." };
-  }
-  if (typeof nickLower !== "string" || !nickLower.trim()) {
-    return { success: false, error: "Moderador no válido." };
-  }
-
-  const ok = await revokeModerator(nickLower);
-  if (!ok) return { success: false, error: "No se pudo revocar." };
-
-  return { success: true, moderators: await listModerators() };
 }
 
 /** Estado del chat para el panel: si está en marcha y cuánta gente hay. */
