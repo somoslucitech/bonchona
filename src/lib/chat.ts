@@ -198,19 +198,35 @@ export function normalizeNick(raw: string): string {
 }
 
 /**
- * Clave de comparación: minúsculas, sin acentos y sin nada que no sea
- * alfanumérico. Así "Bonchóna", "B0nchona" y "bonchona" colisionan con el nick
- * reservado en vez de colarse como variantes.
+ * Dígitos y símbolos que imitan letras. Sin doblarlos, "Bonch0na" o "M0d" se
+ * cuelan como nicks distintos de los reservados, que es exactamente la técnica
+ * que se usa para suplantar a la emisora.
+ *
+ * El precio es que la clave es más lossy: "Luis1" y "Luisi" colisionan. Como
+ * esta clave solo se usa para comparar (nicks reservados, baneos y lista negra)
+ * y nunca para mostrar, ese falso positivo compensa: la misma pérdida es la que
+ * impide esquivar un baneo cambiando una letra por un número.
+ */
+const CONFUSABLES: Record<string, string> = {
+  "0": "o", "1": "i", "!": "i", "|": "i", "3": "e", "4": "a",
+  "@": "a", "5": "s", "$": "s", "7": "t", "8": "b", "9": "g",
+};
+
+/**
+ * Clave de comparación: sin acentos, en minúsculas, con los dígitos que imitan
+ * letras doblados y sin nada que no sea alfanumérico. Así "Bonchóna",
+ * "Bonch0na" y "bonchona" caen todas en la misma clave.
  */
 export function nickKey(nick: string): string {
   return nick
     .normalize("NFD")
     .replace(/[\u0300-\u036F]/g, "")
     .toLowerCase()
+    .replace(/[0-9!|@$]/g, (c) => CONFUSABLES[c] ?? c)
     .replace(/[^a-z0-9]/g, "");
 }
 
-export type NickError = "length" | "invisible" | "reserved" | "empty";
+export type NickError = "length" | "invisible" | "reserved" | "empty" | "needsLetters";
 
 export function validateNick(
   raw: string,
@@ -224,8 +240,10 @@ export function validateNick(
   const length = [...nick].length;
   if (length < NICK_MIN || length > NICK_MAX) return { error: "length" };
 
+  // Un nick de solo emojis o solo signos no deja clave de comparación, así que
+  // no se podría distinguir de otro igual ni sancionar: se pide algo legible.
   const key = nickKey(nick);
-  if (!key) return { error: "empty" };
+  if (!key) return { error: "needsLetters" };
   if (config.reservedNicks.some((r) => nickKey(r) === key)) return { error: "reserved" };
 
   return { nick };
@@ -236,6 +254,7 @@ export const NICK_ERROR_MESSAGES: Record<NickError, string> = {
   length: `El nombre debe tener entre ${NICK_MIN} y ${NICK_MAX} caracteres.`,
   invisible: "Ese nombre tiene caracteres no permitidos.",
   reserved: "Ese nombre está reservado. Elige otro.",
+  needsLetters: "El nombre necesita al menos una letra o un número, no solo emojis.",
 };
 
 // ============================================================

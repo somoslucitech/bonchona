@@ -77,12 +77,17 @@ export async function GET() {
     "Cache-Control": `public, max-age=${CACHE_SECONDS}, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=30`,
   };
 
-  const cache = (caches as unknown as { default: Cache }).default;
+  // `caches` solo existe en el runtime de Workers. En `next dev` (Node) no
+  // está, así que se trabaja sin caché de borde en vez de reventar.
+  const cache =
+    typeof caches !== "undefined" ? (caches as unknown as { default: Cache }).default : null;
   const cacheKey = new Request(`https://bonchona.internal/now-playing`);
 
   try {
-    const cached = await cache.match(cacheKey);
-    if (cached) return cached;
+    if (cache) {
+      const cached = await cache.match(cacheKey);
+      if (cached) return cached;
+    }
 
     const { metadataUrl } = await getStreamConfig();
 
@@ -115,7 +120,7 @@ export async function GET() {
       headers: cacheHeaders,
     });
     // Guardamos en la caché del borde para las siguientes peticiones.
-    await cache.put(cacheKey, response.clone());
+    if (cache) await cache.put(cacheKey, response.clone());
     return response;
   } catch (e) {
     console.error("now-playing error:", e);

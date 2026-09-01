@@ -143,12 +143,23 @@ async function verifyTicket(secret, raw) {
   }
 }
 
-/** Misma normalización que nickKey() en src/lib/chat.ts: sin acentos ni símbolos. */
+/**
+ * Dígitos y símbolos que imitan letras. Sin doblarlos, "Bonch0na" o "t0nto" se
+ * cuelan como distintos de los reservados y de la lista negra.
+ */
+const CONFUSABLES = {
+  "0": "o", "1": "i", "!": "i", "|": "i", "3": "e", "4": "a",
+  "@": "a", "5": "s", "$": "s", "7": "t", "8": "b", "9": "g",
+};
+
+/** Misma normalización que nickKey() en src/lib/chat.ts. Los dos tienen que
+ * doblar igual, o un baneo dejaría de reconocer al mismo nick. */
 function nickKey(nick) {
   return nick
     .normalize("NFD")
     .replace(/[\u0300-\u036F]/g, "")
     .toLowerCase()
+    .replace(/[0-9!|@$]/g, (c) => CONFUSABLES[c] ?? c)
     .replace(/[^a-z0-9]/g, "");
 }
 
@@ -366,7 +377,11 @@ export class ChatRoom extends DurableObject {
 
     await this.loadConfig();
     if (!isOpenNow(this.config, Date.now())) {
-      return Response.json({ error: "closed" }, { status: 403 });
+      return this.rejectSocket(CLOSE.CHAT_CLOSED, {
+        k: "err",
+        c: "closed",
+        t: "El chat está cerrado ahora mismo.",
+      });
     }
 
     const key = nickKey(ticket.n);
@@ -376,21 +391,24 @@ export class ChatRoom extends DurableObject {
     // Un baneo normal cierra la puerta; el shadowban la deja abierta a
     // propósito, para que el sancionado no sepa que lo está.
     if (ban && !isMod && ban.until > Date.now() && !ban.shadow) {
-      return Response.json({ error: "banned", until: ban.until }, { status: 403 });
+      return this.rejectSocket(CLOSE.BANNED, {
+        k: "err",
+        c: "banned",
+        t: "No puedes participar en el chat.",
+        until: ban.until,
+      });
     }
 
     const connected = this.ctx.getWebSockets().length;
     if (!isMod && connected >= this.config.capacity) {
-      // Aforo lleno: no es un error, es una cola. El cliente reintenta.
-      return Response.json(
-        {
-          error: "full",
-          queued: true,
-          position: connected - this.config.capacity + 1,
-          retryAfterMs: 5_000 + Math.floor(Math.random() * 5_000),
-        },
-        { status: 503 }
-      );
+      // Aforo lleno: no es un error, es una cola. El cliente reintenta solo.
+      return this.rejectSocket(CLOSE.FULL, {
+        k: "err",
+        c: "full",
+        t: "El chat está lleno. Te pondremos dentro en cuanto se libere un sitio.",
+        position: connected - this.config.capacity + 1,
+        retryAfterMs: 5_000 + Math.floor(Math.random() * 5_000),
+      });
     }
 
     const pair = new WebSocketPair();
@@ -421,6 +439,31 @@ export class ChatRoom extends DurableObject {
     );
 
     this.maybeBroadcastCount();
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  /**
+   * Rechaza una conexión explicándose.
+   *
+   * Un navegador no puede leer el cuerpo ni el código de una respuesta HTTP de
+   * error en un upgrade fallido: solo ve "la conexión falló". Así que en vez de
+   * devolver 403, aceptamos el socket, mandamos el motivo y cerramos con un
+   * código propio. Es la única forma de que la interfaz pueda distinguir entre
+   * "estás expulsado", "el chat está cerrado" y "hay aforo completo, espera".
+   *
+   * Usa accept() y no acceptWebSocket(), así este socket no cuenta como sesión
+   * hibernable ni ocupa una plaza del aforo.
+   */
+  rejectSocket(code, payload) {
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+    server.accept();
+    try {
+      server.send(JSON.stringify(payload));
+    } catch {
+      // Si ni siquiera podemos explicarnos, el cierre habla por sí solo.
+    }
+    server.close(code, payload.c);
     return new Response(null, { status: 101, webSocket: client });
   }
 
