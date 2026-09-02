@@ -1,6 +1,11 @@
 {
   "main": ".open-next/worker.js",
   "name": "bonchona",
+  // account_id: Tu token de Cloudflare cubre dos cuentas. Sin fijarla aqui, wrangler tiene que
+  // adivinar: en una terminal interactiva pregunta, y en CI o en un script falla con un
+  // 7403 confuso ("account is not valid or is not authorized"). No es un secreto, es un
+  // identificador: sin credenciales no sirve de nada.
+  "account_id": "6f600473116b56387e386a5a4477f81d",
   "compatibility_date": "2025-02-01",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
