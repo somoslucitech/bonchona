@@ -5,6 +5,12 @@
   // adivinar: en una terminal interactiva pregunta, y en CI o en un script falla con un
   // 7403 confuso ("account is not valid or is not authorized"). No es un secreto, es un
   // identificador: sin credenciales no sirve de nada.
+  //
+  // OJO: `npm run deploy` NO se conforma con esto. El paso "Populating remote R2
+  // incremental cache" de OpenNext lanza su propio wrangler, que no hereda esta clave y
+  // se pone a preguntar por consola que cuenta usar. En una terminal se contesta y ya;
+  // en CI o en un script se queda colgado y muere. Para eso:
+  //   CLOUDFLARE_ACCOUNT_ID=6f600473116b56387e386a5a4477f81d npm run deploy
   "account_id": "6f600473116b56387e386a5a4477f81d",
   "compatibility_date": "2025-02-01",
   "compatibility_flags": ["nodejs_compat"],
