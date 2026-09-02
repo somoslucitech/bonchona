@@ -58,14 +58,6 @@ function loadTurnstile(): Promise<void> {
   return scriptPromise;
 }
 
-export interface TurnstileHandle {
-  /** Token listo para gastar, o "" si aún no hay. */
-  token: string;
-  /** Pide uno nuevo. Los tokens se canjean una sola vez. */
-  reset: () => void;
-  failed: boolean;
-}
-
 interface Props {
   onToken: (token: string) => void;
 }
@@ -77,9 +69,13 @@ interface Props {
  * ve nada y el token llega solo. Se monta en la pantalla de entrada al chat,
  * antes del primer mensaje.
  *
- * Si no hay clave pública configurada no renderiza nada y avisa con un token
- * vacío: en desarrollo el servidor lo tolera, y en producción rechaza la
- * entrada, que es el lado correcto en el que fallar.
+ * La clave pública se pide al servidor en vez de leerse de una variable
+ * `NEXT_PUBLIC_`, porque esas se incrustan durante `next build` y no se podrían
+ * configurar desde el panel de Cloudflare.
+ *
+ * Si no hay clave configurada no renderiza nada y avisa con un token vacío: en
+ * desarrollo el servidor lo tolera, y en producción rechaza la entrada, que es
+ * el lado correcto en el que fallar.
  */
 export default function TurnstileGate({ onToken }: Props) {
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -92,17 +88,21 @@ export default function TurnstileGate({ onToken }: Props) {
   }, [onToken]);
 
   useEffect(() => {
-    const sitekey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
-    if (!sitekey) {
-      console.warn("NEXT_PUBLIC_TURNSTILE_SITE_KEY sin configurar: el chat entra sin verificar.");
-      return;
-    }
-
     let cancelled = false;
 
-    loadTurnstile()
-      .then(() => {
-        if (cancelled || !boxRef.current || !window.turnstile) return;
+    Promise.all([
+      fetch("/api/chat/turnstile")
+        .then((r) => (r.ok ? r.json() : { siteKey: "" }))
+        .then((d: { siteKey?: string }) => d.siteKey ?? ""),
+      loadTurnstile(),
+    ])
+      .then(([sitekey]) => {
+        if (cancelled) return;
+        if (!sitekey) {
+          console.warn("Turnstile sin clave pública configurada: el chat entra sin verificar.");
+          return;
+        }
+        if (!boxRef.current || !window.turnstile) return;
         widgetRef.current = window.turnstile.render(boxRef.current, {
           sitekey,
           action: ACTION,

@@ -57,6 +57,8 @@
     "//CHAT_WORKER_URL": "Worker del chat en vivo (workers/chat). Vive en otro hostname a proposito: la cookie de sesion no viaja hasta el, la autenticacion va por ticket HMAC firmado en /api/chat/ticket.",
     "CHAT_WORKER_URL": "https://bonchona-chat.somoslucitech.workers.dev",
     "//TURNSTILE_HOSTNAMES": "Dominios desde los que se acepta un desafio de Turnstile resuelto. Siteverify devuelve donde se resolvio el widget; sin comprobarlo, alguien podria montar el mismo widget en otra web, recoger tokens de sus visitantes y gastarlos aqui. NO anadir localhost: eso solo va en .env.local.",
+    "//TURNSTILE_SITE_KEY": "Clave PUBLICA del widget de Turnstile: aparece en el HTML, no es un secreto. Va aqui y no como NEXT_PUBLIC_ porque esas se incrustan en `next build` y no se podrian cambiar sin recompilar. La clave SECRETA no va aqui: se guarda como secreto del Worker.",
+    "TURNSTILE_SITE_KEY": "PON_AQUI_TU_SITE_KEY",
     "TURNSTILE_HOSTNAMES": "bonchona.somoslucitech.workers.dev,bonchonaradio.com,www.bonchonaradio.com"
   },
   "//unsafe": "Limitador nativo de Workers para /api/chat/ticket. No usa D1 ni almacenamiento, asi que frenar abuso no cuesta nada. Es por centro de datos y best-effort: protege el coste, no es un control de acceso (de eso se encargan Turnstile y la cookie de sesion). El limite es alto a proposito: en Venezuela es normal que decenas de oyentes compartan una misma IP publica por CGNAT del operador movil, y un limite estrecho los dejaria fuera a todos por culpa de uno.",

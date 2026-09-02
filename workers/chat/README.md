@@ -84,19 +84,28 @@ Detalles que importan:
 - `TURNSTILE_HOSTNAMES` de producción **no debe incluir `localhost`**. El valor de
   producción está en el `wrangler.json` de la raíz; el de desarrollo, en `.env.local`.
 
-### Crear el widget
+### Configurar el widget
 
-Este repo trae las **claves de prueba** de Cloudflare en `.env.local`, que siempre pasan y
-sirven para desarrollo. Para producción hay que crear el widget real:
+En desarrollo se usan las **claves de prueba** de Cloudflare, ya puestas en `.env.local`.
+Para producción, el widget se crea en el dashboard (Turnstile → Add widget, modo
+**Managed**, con los dominios de arriba) y sus dos claves se reparten así:
 
-1. https://dash.cloudflare.com → Turnstile → Add widget.
-2. Modo **Managed**. Dominios: `bonchona.somoslucitech.workers.dev`, `bonchonaradio.com`,
-   `www.bonchonaradio.com` (y `localhost` solo si quieres usarlo también en desarrollo).
-3. Copia la **site key** a `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
-4. Guarda la **secret key** como secreto, nunca en el repo:
-   `npx wrangler secret put TURNSTILE_SECRET`
+| Clave | Dónde va | Por qué |
+|---|---|---|
+| **Site key** (pública) | `TURNSTILE_SITE_KEY` en el `wrangler.json` de la raíz | Aparece en el HTML de la página: no es un secreto y controlarla por código evita que un despliegue se la lleve por delante. |
+| **Secret key** | Secreto del Worker, desde el dashboard o `wrangler secret put TURNSTILE_SECRET` | Nunca en el repo. Los secretos **sobreviven a los despliegues**: *"Secrets not included in the file are preserved from the previous version"*. |
 
-Si `TURNSTILE_SECRET` falta en producción y la verificación está exigida, la entrada al chat
+Ojo con dos cosas:
+
+- **La site key NO es una variable `NEXT_PUBLIC_`.** Esas se incrustan durante `next build`,
+  que corre en la máquina de quien despliega, así que configurarla en el panel de Cloudflare
+  no llegaría nunca al navegador y el fallo sería silencioso. Se sirve en tiempo de ejecución
+  desde `GET /api/chat/turnstile`, cacheada 5 minutos: cambiarla no requiere recompilar.
+- **Las variables de texto plano del dashboard son frágiles frente a `wrangler deploy`**, que
+  toma `wrangler.json` como fuente de verdad. Por eso la site key vive en el repo y solo el
+  secreto se gestiona aparte.
+
+Si falta `TURNSTILE_SECRET` en producción y la verificación está exigida, la entrada al chat
 se rechaza con un 503. Es deliberado: fallar abierto en un chat anónimo es el error caro.
 
 ## Deploy
