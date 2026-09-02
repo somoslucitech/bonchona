@@ -172,6 +172,54 @@ const LINK_RE =
 const REPEAT_RE = /(.)\1{6,}/u;
 
 /**
+ * Busca palabras de la lista negra respetando los limites de palabra.
+ *
+ * La version anterior aplastaba el mensaje entero en una sola cadena sin
+ * espacios y buscaba dentro. Cazaba cualquier evasion, pero tambien destrozaba
+ * frases normales: con "puta" en la lista bloqueaba "computadora",
+ * "reputacion", "disputa", "amputar" y "diputado". Un filtro que censura
+ * "computadora" en una radio venezolana se acaba apagando entero, que es peor
+ * que no tenerlo.
+ *
+ * Ahora se compara palabra por palabra, cada una normalizada por su cuenta:
+ *   - igual que la prohibida            -> "tonto"
+ *   - o empieza por ella                -> "tontos", "tontazo"
+ *
+ * Como la normalizacion quita signos y dobla numeros, "T0NT0", "t-o-n-t-o" y
+ * "tóntó" siguen cayendo: para cuando se comparan ya son "tonto". Y las letras
+ * sueltas separadas por espacios ("t o n t o") se vuelven a pegar antes de
+ * comparar, porque si no seria la evasion mas obvia del mundo.
+ *
+ * Lo que NO caza: pegarla a otra palabra ("laputa"). Es deliberado. Cubrir ese
+ * caso exige volver a buscar dentro de las palabras, y ahi vuelven los falsos
+ * positivos. Para eso estan los moderadores.
+ */
+function hasBlockedWord(text, blockedWords) {
+  const palabras = text.split(/\s+/).map(nickKey).filter(Boolean);
+
+  // "t o n t o" -> se unen las rachas de letras sueltas y se prueba tambien.
+  const candidatos = [...palabras];
+  let racha = [];
+  for (const p of [...palabras, ""]) {
+    if (p.length === 1) {
+      racha.push(p);
+      continue;
+    }
+    if (racha.length >= 3) candidatos.push(racha.join(""));
+    racha = [];
+  }
+
+  for (const bruta of blockedWords) {
+    const prohibida = nickKey(bruta);
+    if (!prohibida) continue;
+    for (const palabra of candidatos) {
+      if (palabra === prohibida || palabra.startsWith(prohibida)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Valida y limpia el texto de un mensaje.
  *
  * Corre en el servidor a propósito: el cliente hace las mismas comprobaciones
@@ -206,14 +254,8 @@ function validateText(raw, config, isMod) {
     return { error: "Baja el volumen: no escribas todo en mayúsculas." };
   }
 
-  if (config.blockedWords.length) {
-    const haystack = ` ${nickKey(text)} `;
-    for (const word of config.blockedWords) {
-      const needle = nickKey(word);
-      if (needle && haystack.includes(needle)) {
-        return { error: "Ese mensaje tiene palabras que no permitimos." };
-      }
-    }
+  if (config.blockedWords.length && hasBlockedWord(text, config.blockedWords)) {
+    return { error: "Ese mensaje tiene palabras que no permitimos." };
   }
 
   return { text };
