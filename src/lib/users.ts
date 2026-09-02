@@ -1,6 +1,11 @@
 import { getCloudflareEnv } from "./cf-env";
 
-export type UserRole = "owner" | "editor";
+/**
+ * - owner: control total, incluida la gestion de usuarios.
+ * - editor: contenido del sitio (programas, tarifas, ajustes, demos).
+ * - moderator: SOLO modera el chat en vivo. No toca nada del panel.
+ */
+export type UserRole = "owner" | "editor" | "moderator";
 export type UserStatus = "active" | "revoked";
 
 export interface User {

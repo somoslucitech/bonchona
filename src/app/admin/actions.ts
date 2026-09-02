@@ -11,15 +11,11 @@ import {
   type RotativeRate,
 } from "@/lib/db";
 import { getCloudflareEnv } from "@/lib/cf-env";
-import { getSession, SESSION_COOKIE_NAME, type AuthSession } from "@/lib/auth";
+import { getSession, isOwner, isStaff, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { deleteSession, listSessionsForUser, deleteAllSessionsForUser } from "@/lib/sessions";
 import { listUsers, setUserStatus, countActiveOwners, getUserById, type UserRole } from "@/lib/users";
 import { createInvite, listPendingInvites, revokeInvite, getInvite } from "@/lib/invites";
 import { sendInviteEmail } from "@/lib/email";
-
-function isOwnerSession(session: AuthSession | null): session is AuthSession {
-  return !!session && session.user.role === "owner";
-}
 
 async function inviteUrlFor(token: string): Promise<string> {
   const hdrs = await headers();
@@ -45,11 +41,11 @@ export async function checkAdminSessionAction() {
   return !!session;
 }
 
-// --- Content management (any active user: owner or editor) ---
+// --- Content management (owner o editor; un moderador del chat NO entra aqui) ---
 
 export async function saveProgramsAction(programs: Program[]) {
   const session = await getSession();
-  if (!session) {
+  if (!isStaff(session)) {
     console.warn("Block unauthorized saveProgramsAction call");
     return false;
   }
@@ -64,7 +60,7 @@ export async function saveProgramsAction(programs: Program[]) {
 
 export async function saveRatesAction(rates: RotativeRate[]) {
   const session = await getSession();
-  if (!session) {
+  if (!isStaff(session)) {
     console.warn("Block unauthorized saveRatesAction call");
     return false;
   }
@@ -83,7 +79,7 @@ export async function saveSettingsAction(settings: {
   metadataUrl: string;
 }) {
   const session = await getSession();
-  if (!session) {
+  if (!isStaff(session)) {
     console.warn("Block unauthorized saveSettingsAction call");
     return false;
   }
@@ -102,7 +98,7 @@ export async function saveSettingsAction(settings: {
 
 export async function uploadPrerollAction(formData: FormData) {
   const session = await getSession();
-  if (!session) {
+  if (!isStaff(session)) {
     console.warn("Block unauthorized uploadPrerollAction call");
     return { success: false, error: "Acceso no autorizado." };
   }
@@ -147,7 +143,7 @@ export async function uploadPrerollAction(formData: FormData) {
 
 export async function uploadProgramImageAction(formData: FormData) {
   const session = await getSession();
-  if (!session) {
+  if (!isStaff(session)) {
     console.warn("Block unauthorized uploadProgramImageAction call");
     return { success: false, error: "Acceso no autorizado." };
   }
@@ -232,7 +228,7 @@ export async function uploadProgramImageAction(formData: FormData) {
 
 export async function listUsersAction() {
   const session = await getSession();
-  if (!isOwnerSession(session)) {
+  if (!isOwner(session)) {
     return { success: false as const, error: "Acceso restringido a administradores.", users: [], invites: [] };
   }
 
@@ -245,7 +241,7 @@ export async function listUsersAction() {
 
 export async function createInviteAction(email: string, role: UserRole) {
   const session = await getSession();
-  if (!isOwnerSession(session)) return { success: false, error: "Acceso restringido a administradores." };
+  if (!isOwner(session)) return { success: false, error: "Acceso restringido a administradores." };
   if (!email || !email.includes("@")) return { success: false, error: "Correo inválido." };
 
   const invite = await createInvite({ email: email.trim(), role, createdBy: session.user.id });
@@ -260,7 +256,7 @@ export async function createInviteAction(email: string, role: UserRole) {
 
 export async function resendInviteAction(token: string) {
   const session = await getSession();
-  if (!isOwnerSession(session)) return { success: false, error: "Acceso restringido a administradores." };
+  if (!isOwner(session)) return { success: false, error: "Acceso restringido a administradores." };
 
   const invite = await getInvite(token);
   if (!invite || invite.usedAt || invite.revokedAt) return { success: false, error: "Invitación no válida." };
@@ -272,14 +268,14 @@ export async function resendInviteAction(token: string) {
 
 export async function revokeInviteAction(token: string) {
   const session = await getSession();
-  if (!isOwnerSession(session)) return false;
+  if (!isOwner(session)) return false;
   await revokeInvite(token);
   return true;
 }
 
 export async function revokeUserAction(userId: string) {
   const session = await getSession();
-  if (!isOwnerSession(session)) return { success: false, error: "Acceso restringido a administradores." };
+  if (!isOwner(session)) return { success: false, error: "Acceso restringido a administradores." };
   if (session.user.id === userId) return { success: false, error: "No puedes revocar tu propia cuenta." };
 
   const target = await getUserById(userId);
@@ -295,7 +291,7 @@ export async function revokeUserAction(userId: string) {
 
 export async function revokeSessionAction(sessionId: string) {
   const session = await getSession();
-  if (!isOwnerSession(session)) return false;
+  if (!isOwner(session)) return false;
   await deleteSession(sessionId);
   return true;
 }

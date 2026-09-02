@@ -54,6 +54,14 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
   const [volume, setVolume] = useState(1);
   const [metadata, setMetadata] = useState<string>("");
   const [displayMode, setDisplayMode] = useState<"tagline" | "song">("tagline");
+  // Estado del chat en vivo. Viaja dentro de /api/now-playing en vez de tener
+  // su propio endpoint: el reproductor ya consulta esa ruta, y uno aparte
+  // habria costado millones de peticiones al dia solo para pintar un numero.
+  const [chat, setChat] = useState<{
+    open: boolean;
+    reason: string | null;
+    count: number | null;
+  }>({ open: false, reason: null, count: null });
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -67,8 +75,18 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
     try {
       const response = await fetch("/api/now-playing");
       if (!response.ok) return;
-      const data = (await response.json()) as { title?: string };
+      const data = (await response.json()) as {
+        title?: string;
+        chat?: { open?: boolean; reason?: string | null; count?: number | null };
+      };
       if (data.title) setMetadata(data.title);
+      if (data.chat) {
+        setChat({
+          open: data.chat.open === true,
+          reason: data.chat.reason ?? null,
+          count: typeof data.chat.count === "number" ? data.chat.count : null,
+        });
+      }
     } catch (e) {
       console.warn("Could not fetch metadata:", e);
     }
@@ -90,6 +108,38 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
       };
     }
   }, [isPlaying, status, fetchMetadata]);
+
+  // El estado del chat hace falta aunque nadie le haya dado a play, porque el
+  // boton y el contador viven en la barra siempre. Va a 60s en vez de a 15s:
+  // basta para que el contador se sienta vivo sin cuadruplicar las peticiones
+  // de quien solo esta leyendo el sitio.
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch("/api/now-playing");
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          chat?: { open?: boolean; reason?: string | null; count?: number | null };
+        };
+        if (cancelled || !data.chat) return;
+        setChat({
+          open: data.chat.open === true,
+          reason: data.chat.reason ?? null,
+          count: typeof data.chat.count === "number" ? data.chat.count : null,
+        });
+      } catch {
+        // El chat es accesorio: si no responde, la barra sigue igual.
+      }
+    };
+    const timeoutId = setTimeout(poll, 0);
+    const intervalId = setInterval(poll, 60000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
+  }, []);
 
   // Intervalo de alternancia de visualización (cada 5 segundos)
   useEffect(() => {
@@ -390,6 +440,12 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
     );
   }
 
+  // El chat se ensena si esta abierto, o si esta cerrado solo por horario: en
+  // ese caso el boton invita a volver. Con el chat desactivado del todo por el
+  // admin, la barra queda exactamente como estaba.
+  const showChat = chat.open || chat.reason === "schedule";
+  const openChat = () => window.dispatchEvent(new CustomEvent("chat-toggle"));
+
   return (
     <div className="fixed bottom-0 left-0 right-0 h-20 md:h-24 bg-black/95 border-t border-white/10 z-50 flex items-center justify-between px-4 md:px-12 backdrop-blur-xl transition-all duration-500" suppressHydrationWarning>
       <audio 
@@ -490,6 +546,22 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
           <span className="text-[10px] font-black uppercase tracking-widest text-white">Pidelá!</span>
         </a>
 
+        {showChat && (
+          <button
+            type="button"
+            onClick={openChat}
+            aria-label={chat.open ? "Abrir el chat en vivo" : "El chat esta cerrado ahora mismo"}
+            className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-bonchona-red/20 border border-white/10 rounded-full transition-all"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" className={chat.open ? "text-bonchona-red" : "text-zinc-500"}>
+              <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.8-.8L3 21l1.9-5.2A8.4 8.4 0 0 1 4 11.5a8.4 8.4 0 0 1 8.5-8.4 8.4 8.4 0 0 1 8.5 8.4z" />
+            </svg>
+            <span className="text-[10px] font-black uppercase tracking-widest text-white tabular-nums">
+              {chat.open ? (chat.count ?? "Chat") : "Cerrado"}
+            </span>
+          </button>
+        )}
+
         <div className="hidden md:flex items-center gap-2 group">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-zinc-500 group-hover:text-bonchona-red transition-colors"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>
           <input type="range" min="0" max="1" step="0.01" value={volume} onChange={handleVolume} className="w-16 h-1 accent-bonchona-red appearance-none bg-zinc-800 rounded-full cursor-pointer" />
@@ -502,9 +574,26 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
       </div>
 
       {/* Mobile Live Indicator (visible only on xs) */}
-      <div className="flex sm:hidden items-center gap-1.5 bg-zinc-900/50 px-2.5 py-1 rounded-full border border-white/5">
-        <div className={`w-1 h-1 rounded-full ${isPlaying ? 'bg-bonchona-red animate-ping' : 'bg-zinc-700'}`} />
-        <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">Live</span>
+      <div className="flex sm:hidden items-center gap-2">
+        {showChat && (
+          <button
+            type="button"
+            onClick={openChat}
+            aria-label={chat.open ? "Abrir el chat en vivo" : "El chat esta cerrado ahora mismo"}
+            className="flex items-center gap-1 bg-zinc-900/50 px-2.5 py-1 rounded-full border border-white/5"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" className={chat.open ? "text-bonchona-red" : "text-zinc-500"}>
+              <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.8-.8L3 21l1.9-5.2A8.4 8.4 0 0 1 4 11.5a8.4 8.4 0 0 1 8.5-8.4 8.4 8.4 0 0 1 8.5 8.4z" />
+            </svg>
+            {chat.open && chat.count !== null && (
+              <span className="text-[8px] font-black text-zinc-300 tabular-nums">{chat.count}</span>
+            )}
+          </button>
+        )}
+        <div className="flex items-center gap-1.5 bg-zinc-900/50 px-2.5 py-1 rounded-full border border-white/5">
+          <div className={`w-1 h-1 rounded-full ${isPlaying ? 'bg-bonchona-red animate-ping' : 'bg-zinc-700'}`} />
+          <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">Live</span>
+        </div>
       </div>
     </div>
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCloudflareEnv } from "@/lib/cf-env";
-import { getSession } from "@/lib/auth";
+import { getSession, isStaff } from "@/lib/auth";
 import { getDemo } from "@/lib/demos";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  if (!session) {
+  if (!isStaff(session)) {
     return NextResponse.json({ error: "Acceso no autorizado." }, { status: 401 });
   }
 

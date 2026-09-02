@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from "next/link";
 import Image from "next/image";
 import GlobalPlayer from "@/components/GlobalPlayer";
 import PageTransition from "@/components/PageTransition";
 import VisitTracker from "@/components/VisitTracker";
+import ChatPanel from "@/components/chat/ChatPanel";
 import type { SiteSettings } from "@/lib/db";
 
 interface RootLayoutClientProps {
@@ -15,6 +16,17 @@ interface RootLayoutClientProps {
 
 export default function RootLayoutClient({ settings, children }: RootLayoutClientProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // El boton del chat vive dentro de GlobalPlayer, que no comparte estado con
+  // este componente. Se comunican por el mismo bus de CustomEvent que ya usa
+  // 'play-radio', en vez de introducir el primer contexto del proyecto solo
+  // para pasar un booleano.
+  useEffect(() => {
+    const toggle = () => setIsChatOpen((open) => !open);
+    window.addEventListener("chat-toggle", toggle);
+    return () => window.removeEventListener("chat-toggle", toggle);
+  }, []);
 
   return (
     <>
@@ -89,12 +101,15 @@ export default function RootLayoutClient({ settings, children }: RootLayoutClien
         songRequestWhatsapp={settings.whatsappSongRequest}
       />
 
-      {/* Floating WhatsApp CTA */}
+      <ChatPanel open={isChatOpen} onClose={() => setIsChatOpen(false)} />
+
+      {/* Floating WhatsApp CTA. Se oculta con el chat abierto porque ocupan la
+          misma esquina inferior derecha. */}
       <a
         href={`https://wa.me/${settings.whatsappSongRequest}?text=Hola%20Bonchona!%20Me%20gustar%C3%ADa%20pedir%20esta%20canci%C3%B3n:`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-32 sm:bottom-36 right-4 sm:right-12 z-[40] group flex items-center gap-4"
+        className={`fixed bottom-32 sm:bottom-36 right-4 sm:right-12 z-[40] group items-center gap-4 ${isChatOpen ? "hidden" : "flex"}`}
       >
         <div className="hidden sm:block glass text-white text-[10px] font-black uppercase tracking-[0.2em] px-5 py-2.5 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-4 group-hover:translate-x-0 shadow-2xl pointer-events-none">
           Pidelá!

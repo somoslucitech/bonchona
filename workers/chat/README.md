@@ -1,0 +1,135 @@
+# bonchona-chat
+
+Worker independiente con el Durable Object del chat en vivo de la barra de música.
+
+## Por qué va aparte
+
+Igual que `workers/sampler`: `@opennextjs/cloudflare` genera su propio `worker.js`, y para
+declarar una clase Durable Object habría que reexportarla desde ese artefacto de build, lo
+que hace el build frágil. Como beneficio extra este worker lleva su propio
+`compatibility_date` (2025-08-01), sin arrastrar el `2025-02-01` del worker principal.
+
+## Cómo se autentica
+
+Este worker **no conoce la sesión del sitio**. La cookie `bonchona_session` es host-only y
+no viaja a otro hostname. En su lugar:
+
+1. El navegador pide un ticket a `POST /api/chat/ticket` en el sitio (Next).
+2. Next aplica el límite por IP, verifica Turnstile, valida el nick, resuelve el rol y firma
+   un ticket HMAC de 60 s con `AUTH_SECRET` (ver `src/lib/chat.ts`).
+3. El cliente abre `wss://…/ws?t=<ticket>`.
+4. Aquí solo se verifica la firma: ni Turnstile, ni sesión, ni consultas de usuario.
+
+**Quién modera.** El rol sale de la cookie de sesión del sitio: cualquiera con cuenta en el
+proyecto (`owner`, `editor` o `moderator`) modera el chat. No hay ningún código ni secreto
+que escribir. Hubo un sistema de códigos por nick y se retiró en la migración `0008`: un
+código que se comparte por WhatsApp, no caduca y no se rota es un secreto portador, y quien
+lo tuviera seguiría siendo moderador hasta que alguien se diera cuenta. El rol `moderator`
+solo sirve para eso: quien lo tiene no ve el panel de admin.
+
+Por eso **`AUTH_SECRET` debe ser exactamente el mismo** en los dos workers.
+
+## Endpoints
+
+| Ruta | Uso |
+|---|---|
+| `GET /ws?t=<ticket>` | Conexión WebSocket del chat |
+| `GET /count` | Conectados. Lo consume `/api/now-playing` del sitio |
+| `POST /reload` | Relee la configuración y expulsa a todos si el chat quedó cerrado |
+| `GET /health` | Comprobación de vida |
+
+## Desarrollo local
+
+```bash
+# 1. Secreto compartido con el sitio
+echo "AUTH_SECRET=el-mismo-que-usa-el-sitio" > workers/chat/.dev.vars
+
+# 2. Migración (una sola vez)
+npx wrangler d1 execute bonchona-db --local --file=migrations/0007_chat.sql
+
+# 3. Arrancar
+npx wrangler dev -c workers/chat/wrangler.json --port 8788 --local \
+  --persist-to .wrangler/state
+```
+
+**`--persist-to .wrangler/state` no es opcional.** Sin esa bandera, wrangler crea un estado
+local propio en `workers/chat/.wrangler/` y el worker ve una base D1 vacía: la
+configuración del chat no existe, `loadConfig()` falla y el chat se queda cerrado (que es
+el comportamiento correcto, pero desconcierta un buen rato).
+
+En el sitio, `CHAT_WORKER_URL` debe apuntar a `http://127.0.0.1:8788` durante el
+desarrollo. El valor de producción está en el `wrangler.json` de la raíz.
+
+## Turnstile
+
+El chat exige a los visitantes (no a los moderadores) resolver un desafío invisible antes
+del primer mensaje. **No es redundante con estar alojado en Cloudflare**: el borde filtra
+tráfico y bots conocidos, pero no verifica que haya una persona detrás de una acción. Y
+sobre todo, el modo lento es **por nick**: sin nada que haga costoso crear un nick nuevo, un
+script genera cien y el límite de 30 s deja de significar nada. Turnstile es lo que le pone
+precio a esa identidad.
+
+Se puede apagar desde el panel (`Chat → Verificación anti-bots`) si estorba, con el aviso
+correspondiente.
+
+Detalles que importan:
+
+- El token se canjea **una sola vez**. Como el cliente pide un ticket nuevo en cada
+  reconexión, la primera verificación deja una cookie firmada (`bonchona_chat_pass`, 12 h,
+  HttpOnly, acotada a `/api/chat`) y las reconexiones se apoyan en ella. Sin eso, el chat se
+  caería en el primer cambio de wifi.
+- La validación en servidor comprueba `success`, **`action === "chat"`** y que `hostname`
+  esté en `TURNSTILE_HOSTNAMES`. Sin las dos últimas, un token obtenido en otra web serviría
+  para entrar aquí.
+- `TURNSTILE_HOSTNAMES` de producción **no debe incluir `localhost`**. El valor de
+  producción está en el `wrangler.json` de la raíz; el de desarrollo, en `.env.local`.
+
+### Configurar el widget
+
+En desarrollo se usan las **claves de prueba** de Cloudflare, ya puestas en `.env.local`.
+Para producción, el widget se crea en el dashboard (Turnstile → Add widget, modo
+**Managed**, con los dominios de arriba) y sus dos claves se reparten así:
+
+| Clave | Dónde va | Por qué |
+|---|---|---|
+| **Site key** (pública) | `TURNSTILE_SITE_KEY` en el `wrangler.json` de la raíz | Aparece en el HTML de la página: no es un secreto y controlarla por código evita que un despliegue se la lleve por delante. |
+| **Secret key** | Secreto del Worker, desde el dashboard o `wrangler secret put TURNSTILE_SECRET` | Nunca en el repo. Los secretos **sobreviven a los despliegues**: *"Secrets not included in the file are preserved from the previous version"*. |
+
+Ojo con dos cosas:
+
+- **La site key NO es una variable `NEXT_PUBLIC_`.** Esas se incrustan durante `next build`,
+  que corre en la máquina de quien despliega, así que configurarla en el panel de Cloudflare
+  no llegaría nunca al navegador y el fallo sería silencioso. Se sirve en tiempo de ejecución
+  desde `GET /api/chat/turnstile`, cacheada 5 minutos: cambiarla no requiere recompilar.
+- **Las variables de texto plano del dashboard son frágiles frente a `wrangler deploy`**, que
+  toma `wrangler.json` como fuente de verdad. Por eso la site key vive en el repo y solo el
+  secreto se gestiona aparte.
+
+Si falta `TURNSTILE_SECRET` en producción y la verificación está exigida, la entrada al chat
+se rechaza con un 503. Es deliberado: fallar abierto en un chat anónimo es el error caro.
+
+## Deploy
+
+```bash
+npx wrangler deploy -c workers/chat/wrangler.json
+npx wrangler secret put AUTH_SECRET -c workers/chat/wrangler.json
+```
+
+## Notas de coste
+
+Todo el diseño gira alrededor de dos techos del plan gratuito de Cloudflare: **100.000
+filas escritas al día** y **13.000 GB-s al día**.
+
+- Los mensajes **nunca** tocan D1 ni se guardan uno a uno. Viven en un anillo de 100 en
+  memoria y se vuelcan al almacenamiento del objeto como mucho una vez cada 5 s
+  (`CHECKPOINT_MS`). El precio es perder unos segundos de historial si el objeto hiberna
+  justo entre dos volcados, algo asumible en un chat efímero.
+- El ping/pong se contesta con `setWebSocketAutoResponse`, sin despertar al objeto. Es la
+  diferencia entre hibernar de verdad y pagar duración las 24 horas.
+- Con el chat cerrado, `/api/now-playing` deja de pedir `/count`, así que el objeto se
+  duerme del todo.
+- Por encima de 150 conectados los mensajes se difunden en lotes de 200 ms en vez de uno a
+  uno, para no hacer miles de `send()` por segundo.
+
+Solo en D1 viven la auditoría (`chat_audit`), los usuarios que pueden moderar (`users`) y la
+configuración (`settings`), que son pocas filas y tienen que durar.

@@ -6,7 +6,7 @@ import { getUserById, type User } from "./users";
 export const SESSION_COOKIE_NAME = "bonchona_session";
 export const SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days, in seconds
 
-function base64UrlEncode(bytes: ArrayBuffer): string {
+export function base64UrlEncode(bytes: ArrayBuffer): string {
   const bin = String.fromCharCode(...new Uint8Array(bytes));
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
@@ -17,7 +17,7 @@ function base64UrlDecode(str: string): Uint8Array {
   return Uint8Array.from(bin, (c) => c.charCodeAt(0));
 }
 
-async function getHmacKey(): Promise<CryptoKey> {
+export async function getHmacKey(): Promise<CryptoKey> {
   const env = getCloudflareEnv();
   const secret = env?.AUTH_SECRET || process.env.AUTH_SECRET;
   if (!secret) throw new Error("AUTH_SECRET no configurado.");
@@ -78,4 +78,30 @@ export async function getSession(): Promise<AuthSession | null> {
   if (!user || user.status !== "active") return null;
 
   return { sessionId, user };
+}
+
+// ============================================================
+// Autorizacion
+//
+// Existen porque al anadir el rol `moderator` toda comprobacion del estilo
+// `if (!session)` paso a ser un agujero: un moderador del chat tendria acceso
+// a programas, tarifas, ajustes y a los demos con datos personales de artistas.
+// La pregunta correcta nunca es "hay sesion", sino "que puede hacer esta".
+// ============================================================
+
+/** Gestion de usuarios e invitaciones. */
+export function isOwner(session: AuthSession | null): session is AuthSession {
+  return !!session && session.user.role === "owner";
+}
+
+/** Operar el panel: contenido, tarifas, ajustes, demos. NO los moderadores. */
+export function isStaff(session: AuthSession | null): session is AuthSession {
+  return !!session && (session.user.role === "owner" || session.user.role === "editor");
+}
+
+/** Moderar el chat en vivo. Todo el equipo puede, moderadores incluidos. */
+export function canModerateChat(session: AuthSession | null): session is AuthSession {
+  if (!session) return false;
+  const role = session.user.role;
+  return role === "owner" || role === "editor" || role === "moderator";
 }
