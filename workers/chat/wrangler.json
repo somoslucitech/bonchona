@@ -24,7 +24,8 @@
     }
   ],
   "vars": {
-    "//ALLOWED_ORIGINS": "Origenes que pueden abrir el WebSocket, separados por coma. El worker rechaza cualquier otro para que otra web no monte su propio chat sobre nuestra sala.",
+    // ALLOWED_ORIGINS: Origenes que pueden abrir el WebSocket, separados por coma. El worker rechaza cualquier otro
+    // para que otra web no monte su propio chat sobre nuestra sala.
     "ALLOWED_ORIGINS": "https://bonchona.somoslucitech.workers.dev,https://bonchonaradio.com,https://www.bonchonaradio.com,http://localhost:3000,http://127.0.0.1:3000"
   },
   "observability": {
