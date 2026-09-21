@@ -1,6 +1,9 @@
 {
   "name": "bonchona-sampler",
   "main": "index.js",
+  // account_id: cuenta bonchona1071. El token cubre varias cuentas; sin fijarla, wrangler
+  // pregunta interactivamente o falla en un script no interactivo.
+  "account_id": "fd561fd839efecdfc830bdd216c925b5",
   "compatibility_date": "2025-02-01",
   "triggers": {
     "crons": ["*/5 * * * *"]
@@ -9,12 +12,13 @@
     {
       "binding": "DB",
       "database_name": "bonchona-db",
-      "database_id": "fb82b1b8-a34f-4b11-98f9-c31f46dd8ff1"
+      "database_id": "f303dab4-c82d-4491-a774-961babbab27e"
     }
   ],
-  "vars": {
-    "STREAM_STATUS_URL": "https://radio.bonchonaradio.com:8443/status-json.xsl"
-  },
+  // Ya no hay STREAM_STATUS_URL aqui: el worker lee la URL real de la tabla
+  // `settings` (clave stream_metadata_url), la misma que edita el admin. Tener
+  // una copia fija aqui fue justo lo que quedo desactualizado cuando cambio el
+  // hostname del Icecast.
   "observability": {
     "enabled": true
   }

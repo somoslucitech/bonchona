@@ -1,28 +1,28 @@
 {
   "main": ".open-next/worker.js",
   "name": "bonchona",
-  // account_id: Tu token de Cloudflare cubre dos cuentas. Sin fijarla aqui, wrangler tiene que
-  // adivinar: en una terminal interactiva pregunta, y en CI o en un script falla con un
-  // 7403 confuso ("account is not valid or is not authorized"). No es un secreto, es un
-  // identificador: sin credenciales no sirve de nada.
+  // account_id: cuenta bonchona1071 (Bonchona107fm@gmail.com), separada de la cuenta
+  // compartida del desarrollador tras la migracion. Sin fijarla aqui, wrangler tiene que
+  // adivinar entre las cuentas que cubre el token: en una terminal interactiva pregunta, y
+  // en CI o en un script falla con un 7403 confuso ("account is not valid or is not
+  // authorized"). No es un secreto, es un identificador: sin credenciales no sirve de nada.
   //
   // OJO: `npm run deploy` NO se conforma con esto. El paso "Populating remote R2
   // incremental cache" de OpenNext lanza su propio wrangler, que no hereda esta clave y
   // se pone a preguntar por consola que cuenta usar. En una terminal se contesta y ya;
   // en CI o en un script se queda colgado y muere. Para eso:
-  //   CLOUDFLARE_ACCOUNT_ID=6f600473116b56387e386a5a4477f81d npm run deploy
-  "account_id": "6f600473116b56387e386a5a4477f81d",
+  //   CLOUDFLARE_ACCOUNT_ID=fd561fd839efecdfc830bdd216c925b5 npm run deploy
+  "account_id": "fd561fd839efecdfc830bdd216c925b5",
   "compatibility_date": "2025-02-01",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "kv_namespaces": [
-    {
-      "binding": "KV",
-      "id": "8a5fc6f211b3460ca4b413c9324c0fa3"
-    }
+  // routes: dominio de prueba mientras se verifica la migracion. El corte final agrega
+  // bonchonaradio.com y www.bonchonaradio.com aqui mismo.
+  "routes": [
+    { "pattern": "nuevo.bonchonaradio.com", "custom_domain": true }
   ],
   "r2_buckets": [
     {
@@ -46,12 +46,12 @@
     {
       "binding": "DB",
       "database_name": "bonchona-db",
-      "database_id": "fb82b1b8-a34f-4b11-98f9-c31f46dd8ff1"
+      "database_id": "f303dab4-c82d-4491-a774-961babbab27e"
     },
     {
       "binding": "NEXT_TAG_CACHE_D1",
       "database_name": "bonchona-db",
-      "database_id": "fb82b1b8-a34f-4b11-98f9-c31f46dd8ff1"
+      "database_id": "f303dab4-c82d-4491-a774-961babbab27e"
     }
   ],
   "services": [
@@ -66,19 +66,26 @@
     // no-reply@bonchonaradio.com en cuanto ese dominio se verifique en resend.com/domains.
     "EMAIL_FROM": "Bonchona Radio <bonchona@somosluci.com>",
     "GOOGLE_CLIENT_ID": "676560544113-iqduj9vf742acpga6tnn7vh8f1oo3rcq.apps.googleusercontent.com",
-    "SITE_URL": "https://bonchona.somoslucitech.workers.dev",
+    // SITE_URL: apunta al subdominio de prueba mientras se verifica la migracion. El corte
+    // final lo cambia a https://bonchonaradio.com.
+    "SITE_URL": "https://nuevo.bonchonaradio.com",
     // CHAT_WORKER_URL: Worker del chat en vivo (workers/chat). Vive en otro hostname a proposito: la cookie de
     // sesion no viaja hasta el, la autenticacion va por ticket HMAC firmado en /api/chat/ticket.
-    "CHAT_WORKER_URL": "https://bonchona-chat.somoslucitech.workers.dev",
+    // Tras la migracion tiene su propio dominio (chat.bonchonaradio.com) en vez de depender
+    // del subdominio *.workers.dev de la cuenta, que ademas cambia entre cuentas.
+    "CHAT_WORKER_URL": "https://chat.bonchonaradio.com",
     // TURNSTILE_HOSTNAMES: Dominios desde los que se acepta un desafio de Turnstile resuelto. Siteverify devuelve donde
     // se resolvio el widget; sin comprobarlo, alguien podria montar el mismo widget en otra web,
     // recoger tokens de sus visitantes y gastarlos aqui. NO anadir localhost: eso solo va en
-    // .env.local.
+    // .env.local. Incluye el dominio de prueba mientras dura la migracion; se retira en el
+    // corte final si ya no hace falta.
     // TURNSTILE_SITE_KEY: Clave PUBLICA del widget de Turnstile: aparece en el HTML, no es un secreto. Va aqui y no
     // como NEXT_PUBLIC_ porque esas se incrustan en `next build` y no se podrian cambiar sin
-    // recompilar. La clave SECRETA no va aqui: se guarda como secreto del Worker.
-    "TURNSTILE_SITE_KEY": "0x4AAAAAAEkcDycE5Y8ucu9K",
-    "TURNSTILE_HOSTNAMES": "bonchona.somoslucitech.workers.dev,bonchonaradio.com,www.bonchonaradio.com"
+    // recompilar. La clave SECRETA no va aqui: se guarda como secreto del Worker. Widget
+    // propio creado en la cuenta bonchona1071 (no el heredado de somoslucitech), para que
+    // este recurso tambien viva separado del resto de clientes del desarrollador.
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAE_OyJFCvMleaCaW",
+    "TURNSTILE_HOSTNAMES": "nuevo.bonchonaradio.com,bonchonaradio.com,www.bonchonaradio.com"
   },
   // unsafe: Limitador nativo de Workers para /api/chat/ticket. No usa D1 ni almacenamiento, asi que
   // frenar abuso no cuesta nada. Es por centro de datos y best-effort: protege el coste, no es

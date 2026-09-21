@@ -1,12 +1,17 @@
 {
   "name": "bonchona-chat",
-  // account_id: Tu token de Cloudflare cubre dos cuentas. Sin fijarla aqui, wrangler tiene que
-  // adivinar: en una terminal interactiva pregunta, y en CI o en un script falla con un
-  // 7403 confuso ("account is not valid or is not authorized"). No es un secreto, es un
-  // identificador: sin credenciales no sirve de nada.
-  "account_id": "6f600473116b56387e386a5a4477f81d",
+  // account_id: cuenta bonchona1071. Sin fijarla aqui, wrangler tiene que adivinar entre las
+  // cuentas que cubre el token: en una terminal interactiva pregunta, y en CI o en un script
+  // falla con un 7403 confuso ("account is not valid or is not authorized"). No es un
+  // secreto, es un identificador: sin credenciales no sirve de nada.
+  "account_id": "fd561fd839efecdfc830bdd216c925b5",
   "main": "index.js",
   "compatibility_date": "2025-08-01",
+  // routes: dominio propio para el chat, en vez de depender del subdominio *.workers.dev de
+  // la cuenta (que ademas cambia al migrar de cuenta).
+  "routes": [
+    { "pattern": "chat.bonchonaradio.com", "custom_domain": true }
+  ],
   "durable_objects": {
     "bindings": [
       {
@@ -25,13 +30,14 @@
     {
       "binding": "DB",
       "database_name": "bonchona-db",
-      "database_id": "fb82b1b8-a34f-4b11-98f9-c31f46dd8ff1"
+      "database_id": "f303dab4-c82d-4491-a774-961babbab27e"
     }
   ],
   "vars": {
     // ALLOWED_ORIGINS: Origenes que pueden abrir el WebSocket, separados por coma. El worker rechaza cualquier otro
-    // para que otra web no monte su propio chat sobre nuestra sala.
-    "ALLOWED_ORIGINS": "https://bonchona.somoslucitech.workers.dev,https://bonchonaradio.com,https://www.bonchonaradio.com,http://localhost:3000,http://127.0.0.1:3000"
+    // para que otra web no monte su propio chat sobre nuestra sala. Incluye el dominio de
+    // prueba mientras dura la migracion; se retira en el corte final si ya no hace falta.
+    "ALLOWED_ORIGINS": "https://nuevo.bonchonaradio.com,https://bonchonaradio.com,https://www.bonchonaradio.com,http://localhost:3000,http://127.0.0.1:3000"
   },
   "observability": {
     "enabled": true

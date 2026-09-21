@@ -12,12 +12,33 @@
 const VET_OFFSET_MS = 4 * 60 * 60 * 1000; // Venezuela, UTC-4 fijo
 const RETENTION_DAYS = 90;
 
+// Solo se usa si D1 no responde. El valor real vive en la tabla `settings`
+// (clave `stream_metadata_url`), la misma que edita el admin y que ya lee
+// getStreamConfig() en el sitio principal — antes este worker tenía su propia
+// copia fija (STREAM_STATUS_URL en wrangler.json) que quedó desactualizada
+// cuando cambió el hostname del Icecast sin que nadie se acordara de tocar
+// también este archivo.
+const FALLBACK_METADATA_URL = "https://stream.bonchonaradio.com:8443/status-json.xsl";
+
 function vetDayKey(epochMs) {
   return new Date(epochMs - VET_OFFSET_MS).toISOString().slice(0, 10);
 }
 
+async function getStreamMetadataUrl(env) {
+  try {
+    const row = await env.DB.prepare("SELECT value FROM settings WHERE key = 'stream_metadata_url'").first();
+    if (row?.value) {
+      const parsed = JSON.parse(row.value);
+      if (typeof parsed === "string" && parsed) return parsed;
+    }
+  } catch (e) {
+    console.error("No se pudo leer stream_metadata_url de settings:", e.message);
+  }
+  return FALLBACK_METADATA_URL;
+}
+
 async function sample(env) {
-  const url = env.STREAM_STATUS_URL || "https://radio.bonchonaradio.com:8443/status-json.xsl";
+  const url = await getStreamMetadataUrl(env);
   const ts = Date.now();
 
   let listeners = 0;
