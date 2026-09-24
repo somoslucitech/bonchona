@@ -19,9 +19,12 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  // routes: dominio de prueba mientras se verifica la migracion. El corte final agrega
-  // bonchonaradio.com y www.bonchonaradio.com aqui mismo.
+  // routes: dominio real de produccion (corte hecho el 2026-09-23, reemplaza al WordPress que
+  // vivia en el hosting EasyWP) mas el subdominio de pruebas, que se puede retirar cuando ya
+  // no haga falta.
   "routes": [
+    { "pattern": "bonchonaradio.com", "custom_domain": true },
+    { "pattern": "www.bonchonaradio.com", "custom_domain": true },
     { "pattern": "nuevo.bonchonaradio.com", "custom_domain": true }
   ],
   "r2_buckets": [
@@ -66,9 +69,8 @@
     // no-reply@bonchonaradio.com en cuanto ese dominio se verifique en resend.com/domains.
     "EMAIL_FROM": "Bonchona Radio <bonchona@somosluci.com>",
     "GOOGLE_CLIENT_ID": "676560544113-iqduj9vf742acpga6tnn7vh8f1oo3rcq.apps.googleusercontent.com",
-    // SITE_URL: apunta al subdominio de prueba mientras se verifica la migracion. El corte
-    // final lo cambia a https://bonchonaradio.com.
-    "SITE_URL": "https://nuevo.bonchonaradio.com",
+    // SITE_URL: dominio real. Alimenta canonicals, Open Graph, sitemap y robots (src/lib/seo.ts).
+    "SITE_URL": "https://bonchonaradio.com",
     // CHAT_WORKER_URL: Worker del chat en vivo (workers/chat). Vive en otro hostname a proposito: la cookie de
     // sesion no viaja hasta el, la autenticacion va por ticket HMAC firmado en /api/chat/ticket.
     // Tras la migracion tiene su propio dominio (chat.bonchonaradio.com) en vez de depender
