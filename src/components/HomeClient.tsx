@@ -28,19 +28,23 @@ export default function HomeClient({ initialPrograms }: HomeClientProps) {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center lg:items-start text-center lg:text-left"
           >
-            <div className="flex items-center gap-3 mb-6 sm:mb-8">
+            {/* Desde `lg` el hero es de dos columnas y tiene que caber en una sola pantalla
+                sobre la barra fija del reproductor. Por eso el titular y los espacios
+                dependen de la ALTURA de la ventana (dvh), no solo del ancho: en un monitor
+                grande llegan a su tamaño completo y en una laptop baja se comprimen. */}
+            <div className="flex items-center gap-3 mb-6 sm:mb-8 lg:mb-[clamp(1rem,3dvh,2rem)]">
               <span className="w-6 sm:w-8 h-px bg-bonchona-red"></span>
               <span className="text-bonchona-red font-black tracking-[0.3em] sm:tracking-[0.4em] text-[10px] sm:text-xs uppercase">
                 107.1 FM | Sintonía Total
               </span>
             </div>
-            
-            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[115px] font-black tracking-tighter leading-[0.85] mb-6 sm:mb-8 uppercase italic">
-              VIVE EL <br /> 
+
+            <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[clamp(4rem,min(7.5vw,14dvh),7.2rem)] font-black tracking-tighter leading-[0.85] mb-6 sm:mb-8 lg:mb-[clamp(1rem,3dvh,2rem)] uppercase italic">
+              VIVE EL <br />
               <span className="text-gradient">BONCHE.</span>
             </h1>
-            
-            <p className="text-zinc-400 text-base sm:text-lg md:text-xl max-w-md mb-10 sm:mb-12 leading-relaxed font-medium">
+
+            <p className="text-zinc-400 text-base sm:text-lg md:text-xl lg:text-[clamp(1rem,2.4dvh,1.25rem)] max-w-md mb-10 sm:mb-12 lg:mb-[clamp(1.25rem,4.5dvh,3rem)] leading-relaxed font-medium">
               La número 1 del centro del país. Desde Valencia, marcando el ritmo de toda Venezuela con un legado de excelencia.
             </p>
             
@@ -67,10 +71,15 @@ export default function HomeClient({ initialPrograms }: HomeClientProps) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="relative hidden lg:block"
+            className="relative hidden lg:flex justify-center"
           >
             <div className="absolute -inset-10 bg-bonchona-purple/20 blur-[120px] rounded-full animate-pulse"></div>
-            <div className="relative aspect-square w-full glass rounded-[3rem] p-12 overflow-hidden flex items-center justify-center border-white/5 shadow-2xl">
+            {/* Cuadrado limitado por altura: antes era `w-full` + aspect-square, y su alto
+                era el ancho de la columna (~616px), más que el espacio libre en laptops
+                bajas, así que se metía debajo de la barra del reproductor. Aquí el alto
+                manda (máx. 38rem, o lo que quede entre la navbar y la barra) y el ancho lo
+                sigue. 14rem = navbar (5rem) + barra (6rem) + aire (3rem). */}
+            <div className="relative aspect-square h-[min(38rem,calc(100dvh-14rem))] w-auto glass rounded-[3rem] p-[clamp(1.5rem,4dvh,3rem)] overflow-hidden flex items-center justify-center border-white/5 shadow-2xl">
               <Image 
                 src="/logos-bonchona/92.png" 
                 alt="Bonchona Logo" 
