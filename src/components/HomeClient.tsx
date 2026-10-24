@@ -5,6 +5,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Program } from '@/lib/db';
+import { useSeason, type Season } from '@/lib/season';
+
+const HERO_COPY: Record<Season, { kicker: string; lead: string; accent: string }> = {
+  ninguna: { kicker: '107.1 FM | Sintonía Total', lead: 'VIVE EL', accent: 'BONCHE.' },
+  halloween: { kicker: '107.1 FM | Especial de Halloween 🎃', lead: 'NOCHE DE', accent: 'BONCHE.' },
+  navidad: { kicker: '107.1 FM | Temporada de Gaitas 🎄', lead: 'VIVE LA', accent: 'GAITA.' },
+};
 
 interface HomeClientProps {
   initialPrograms: Program[];
@@ -12,6 +19,7 @@ interface HomeClientProps {
 
 export default function HomeClient({ initialPrograms }: HomeClientProps) {
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+  const hero = HERO_COPY[useSeason()];
 
   return (
     <div className="flex flex-col items-center w-full bg-bonchona-navy overflow-x-hidden">
@@ -35,13 +43,13 @@ export default function HomeClient({ initialPrograms }: HomeClientProps) {
             <div className="flex items-center gap-3 mb-6 sm:mb-8 lg:mb-[clamp(1rem,3dvh,2rem)]">
               <span className="w-6 sm:w-8 h-px bg-bonchona-red"></span>
               <span className="text-bonchona-red font-black tracking-[0.3em] sm:tracking-[0.4em] text-[10px] sm:text-xs uppercase">
-                107.1 FM | Sintonía Total
+                {hero.kicker}
               </span>
             </div>
 
             <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[clamp(4rem,min(7.5vw,14dvh),7.2rem)] font-black tracking-tighter leading-[0.85] mb-6 sm:mb-8 lg:mb-[clamp(1rem,3dvh,2rem)] uppercase italic">
-              VIVE EL <br />
-              <span className="text-gradient">BONCHE.</span>
+              {hero.lead} <br />
+              <span className="text-gradient">{hero.accent}</span>
             </h1>
 
             <p className="text-zinc-400 text-base sm:text-lg md:text-xl lg:text-[clamp(1rem,2.4dvh,1.25rem)] max-w-md mb-10 sm:mb-12 lg:mb-[clamp(1.25rem,4.5dvh,3rem)] leading-relaxed font-medium">
