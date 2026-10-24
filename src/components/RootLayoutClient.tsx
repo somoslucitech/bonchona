@@ -6,6 +6,7 @@ import Image from "next/image";
 import GlobalPlayer from "@/components/GlobalPlayer";
 import PageTransition from "@/components/PageTransition";
 import VisitTracker from "@/components/VisitTracker";
+import SeasonalTheme from "@/components/SeasonalTheme";
 import ChatPanel from "@/components/chat/ChatPanel";
 import type { SiteSettings } from "@/lib/db";
 
@@ -32,6 +33,10 @@ export default function RootLayoutClient({ settings, children }: RootLayoutClien
     <>
       <Suspense fallback={null}>
         <VisitTracker />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <SeasonalTheme />
       </Suspense>
 
       {/* Mobile Menu Overlay */}

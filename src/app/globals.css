@@ -17,8 +17,8 @@
 
   /* Gradients */
   --background-image-bonchona-gradient: linear-gradient(135deg, var(--bonchona-red), var(--bonchona-purple));
-  --background-image-mesh-brand: radial-gradient(at 0% 0%, rgba(232, 75, 50, 0.15) 0px, transparent 50%),
-                                radial-gradient(at 100% 0%, rgba(92, 15, 139, 0.15) 0px, transparent 50%);
+  --background-image-mesh-brand: radial-gradient(at 0% 0%, color-mix(in srgb, var(--bonchona-red) 15%, transparent) 0px, transparent 50%),
+                                radial-gradient(at 100% 0%, color-mix(in srgb, var(--bonchona-purple) 15%, transparent) 0px, transparent 50%);
 
   --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
@@ -73,9 +73,73 @@ select option:checked {
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, #E84B32, #A3177F);
+  background: linear-gradient(135deg, var(--bonchona-red), var(--bonchona-purple-medium));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+/* ── Máscaras de temporada ──────────────────────────────────────────────
+   SeasonalTheme pone data-season en <html>. Al redefinir los tokens de
+   marca, todo lo que usa bg-bonchona-red, text-gradient, etc. cambia solo. */
+:root[data-season="halloween"] {
+  --brand: #FF7518;
+  --brand-hover: #ff8f3f;
+  --bonchona-red: #FF7518;          /* naranja calabaza */
+  --bonchona-purple: #4A0E78;
+  --bonchona-rubine: #C2185B;
+  --bonchona-purple-medium: #9D4EDD;
+  --bonchona-navy: #07060F;
+}
+
+:root[data-season="navidad"] {
+  --bonchona-red: #E23B3B;
+  --bonchona-purple: #0F5132;       /* verde pino */
+  --bonchona-rubine: #B71C1C;
+  --bonchona-purple-medium: #D4AF37; /* dorado */
+  --bonchona-navy: #060F0C;
+}
+
+.season-bat {
+  animation-name: season-bat-fly;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes season-bat-fly {
+  0%   { transform: translate(0, 0) scaleY(1); }
+  /* Cruza en el primer 35% del ciclo y el resto del tiempo espera fuera */
+  5%   { transform: translate(15vw, -20px) scaleY(0.5); }
+  10%  { transform: translate(30vw, 10px) scaleY(1); }
+  15%  { transform: translate(45vw, -15px) scaleY(0.5); }
+  20%  { transform: translate(60vw, 15px) scaleY(1); }
+  25%  { transform: translate(75vw, -10px) scaleY(0.5); }
+  30%  { transform: translate(90vw, 5px) scaleY(1); }
+  35%, 100% { transform: translate(110vw, -30px) scaleY(0.5); }
+}
+
+.season-fog {
+  background:
+    radial-gradient(ellipse 40% 60% at 20% 100%, rgba(200, 200, 220, 0.14), transparent 70%),
+    radial-gradient(ellipse 35% 55% at 70% 100%, rgba(200, 200, 220, 0.12), transparent 70%),
+    radial-gradient(ellipse 30% 50% at 110% 100%, rgba(200, 200, 220, 0.12), transparent 70%);
+  background-size: 200% 100%;
+  animation: season-fog-drift 40s linear infinite alternate;
+}
+@keyframes season-fog-drift {
+  from { background-position: 0% 0; }
+  to   { background-position: 100% 0; }
+}
+
+.season-bulb {
+  animation: season-twinkle 2.4s ease-in-out infinite;
+}
+@keyframes season-twinkle {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-bat { display: none; }
+  .season-fog, .season-bulb { animation: none; }
 }
 
 /* Custom scrollbar for premium feel */

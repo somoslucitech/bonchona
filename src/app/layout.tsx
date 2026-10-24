@@ -4,6 +4,7 @@ import "./globals.css";
 import Script from "next/script";
 import { getSiteSettings } from "@/lib/db";
 import RootLayoutClient from "@/components/RootLayoutClient";
+import { seasonBootScript } from "@/lib/season-calendar";
 import {
   getSiteUrl, SITE_NAME, SITE_DESCRIPTION, DEFAULT_OG_IMAGE,
   organizationJsonLd, websiteJsonLd, jsonLdScript,
@@ -89,6 +90,9 @@ export default async function RootLayout({
 
   return (
     <html lang="es" className="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: seasonBootScript }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-bonchona-navy text-foreground pb-24`}
         suppressHydrationWarning
