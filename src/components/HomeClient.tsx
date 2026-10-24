@@ -31,8 +31,8 @@ export default function HomeClient({ initialPrograms }: HomeClientProps) {
         <div className="max-w-7xl w-full grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           
           <motion.div 
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ x: -30 }}
+            animate={{ x: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center lg:items-start text-center lg:text-left"
           >
@@ -48,6 +48,9 @@ export default function HomeClient({ initialPrograms }: HomeClientProps) {
             </div>
 
             <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-[clamp(4rem,min(7.5vw,14dvh),7.2rem)] font-black tracking-tighter leading-[0.85] mb-6 sm:mb-8 lg:mb-[clamp(1rem,3dvh,2rem)] uppercase italic">
+              {/* El titular es un lema; el prefijo oculto le dice a buscadores y
+                  lectores de pantalla qué es el sitio. */}
+              <span className="sr-only">Bonchona 107.1 FM, radio en vivo desde Valencia: </span>
               {hero.lead} <br />
               <span className="text-gradient">{hero.accent}</span>
             </h1>
@@ -76,8 +79,8 @@ export default function HomeClient({ initialPrograms }: HomeClientProps) {
           </motion.div>
 
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
             transition={{ duration: 1, delay: 0.2 }}
             className="relative hidden lg:flex justify-center"
           >

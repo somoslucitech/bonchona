@@ -4,6 +4,9 @@ import EstudioClient from "@/components/EstudioClient";
 import { SITE_NAME, SITE_LOCALE, DEFAULT_OG_IMAGE } from "@/lib/seo";
 
 const TITLE = "Estudio de Grabación y Producción de Audio";
+// La plantilla "%s | marca" del layout solo se aplica al <title>; Open Graph
+// y Twitter la ignoran, así que el título para compartir lleva la marca aquí.
+const SHARE_TITLE = `${TITLE} | ${SITE_NAME}`;
 const DESCRIPTION =
   "Podcast en 4K, grabación musical, jingles e identidad sonora en Valencia, Carabobo. Producción profesional con el estándar de Bonchona 107.1 FM.";
 
@@ -16,7 +19,7 @@ export const metadata: Metadata = {
   // vista previa al compartir queda sin foto.
   openGraph: {
     type: "website",
-    title: TITLE,
+    title: SHARE_TITLE,
     description: DESCRIPTION,
     url: "/estudio",
     siteName: SITE_NAME,
@@ -25,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: TITLE,
+    title: SHARE_TITLE,
     description: DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },

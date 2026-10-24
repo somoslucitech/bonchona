@@ -4,7 +4,10 @@ import FamosoClient from "@/components/FamosoClient";
 import { headers } from "next/headers";
 import { SITE_NAME, SITE_LOCALE, DEFAULT_OG_IMAGE } from "@/lib/seo";
 
-const TITLE = "Publicidad en Radio — Anúnciate en Bonchona 107.1 FM";
+const TITLE = "Publicidad en Radio en Valencia — Anúnciate";
+// La plantilla "%s | marca" del layout solo se aplica al <title>; Open Graph
+// y Twitter la ignoran, así que el título para compartir lleva la marca aquí.
+const SHARE_TITLE = `${TITLE} | ${SITE_NAME}`;
 const DESCRIPTION =
   "Tarifas de publicidad rotativa y patrocinio de programas en vivo en la emisora líder del centro de Venezuela. Llega a toda Valencia y Carabobo.";
 
@@ -17,7 +20,7 @@ export const metadata: Metadata = {
   // vista previa al compartir queda sin foto.
   openGraph: {
     type: "website",
-    title: TITLE,
+    title: SHARE_TITLE,
     description: DESCRIPTION,
     url: "/famoso",
     siteName: SITE_NAME,
@@ -26,7 +29,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: TITLE,
+    title: SHARE_TITLE,
     description: DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },

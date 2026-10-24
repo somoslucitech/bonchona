@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import NosotrosClient from "@/components/NosotrosClient";
 import { SITE_NAME, SITE_LOCALE, DEFAULT_OG_IMAGE } from "@/lib/seo";
 
-const TITLE = "Nuestra Historia";
+const TITLE = "Nuestra Historia: Radio en Valencia desde 1997";
+// La plantilla "%s | marca" del layout solo se aplica al <title>; Open Graph
+// y Twitter la ignoran, así que el título para compartir lleva la marca aquí.
+const SHARE_TITLE = `${TITLE} | ${SITE_NAME}`;
 const DESCRIPTION =
   "Desde 1997 en el 107.1 del dial. La historia de Radio Bonchona, el legado de Carlos Briceño y la segunda generación de la Sintonía Total en Valencia, Carabobo.";
 
@@ -15,7 +18,7 @@ export const metadata: Metadata = {
   // vista previa al compartir queda sin foto.
   openGraph: {
     type: "website",
-    title: TITLE,
+    title: SHARE_TITLE,
     description: DESCRIPTION,
     url: "/nosotros",
     siteName: SITE_NAME,
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: TITLE,
+    title: SHARE_TITLE,
     description: DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },

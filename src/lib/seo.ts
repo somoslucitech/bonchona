@@ -37,6 +37,8 @@ export function organizationJsonLd() {
     image: absoluteUrl("/logos-bonchona/92.png"),
     slogan: SITE_TAGLINE,
     broadcastFrequency: "107.1 FM",
+    // Fecha de la salida al aire, tal como la cuenta /nosotros.
+    foundingDate: "1997-09-17",
     inLanguage: "es-VE",
     areaServed: [
       { "@type": "City", name: "Valencia" },

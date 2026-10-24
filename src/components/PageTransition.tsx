@@ -1,15 +1,18 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
 export default function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  // Sin useSearchParams a propósito: dentro del <Suspense> del layout obliga a
+  // Next a no prerenderizar las páginas estáticas, que llegaban en un
+  // <div hidden> y no se veían hasta hidratar (LCP de ~3 s en /estudio).
   const [isPending, setIsPending] = useState(false);
   const [displayPathname, setDisplayPathname] = useState(pathname);
+  const [hasNavigated, setHasNavigated] = useState(false);
 
   useEffect(() => {
     // Al cambiar la ruta, mostramos el loader
@@ -22,6 +25,7 @@ export default function PageTransition({ children }: { children: React.ReactNode
       // Simulamos un pequeño delay para que la transición sea perceptible y suave
       const timer = setTimeout(() => {
         setDisplayPathname(pathname);
+        setHasNavigated(true);
         setIsPending(false);
       }, 600); // Duración de la animación de salida/entrada
 
@@ -30,7 +34,7 @@ export default function PageTransition({ children }: { children: React.ReactNode
         clearTimeout(timer);
       };
     }
-  }, [pathname, searchParams, displayPathname]);
+  }, [pathname, displayPathname]);
 
   return (
     <>
@@ -84,9 +88,12 @@ export default function PageTransition({ children }: { children: React.ReactNode
         )}
       </AnimatePresence>
 
+      {/* En la primera carga no se anima: con opacity:0 en el HTML del
+          servidor, nada se veía hasta que hidrataba React y el LCP móvil
+          pasaba de 4 s. La entrada animada queda para la navegación. */}
       <motion.div
         key={displayPathname}
-        initial={{ opacity: 0, y: 10 }}
+        initial={hasNavigated ? { opacity: 0, y: 10 } : false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
