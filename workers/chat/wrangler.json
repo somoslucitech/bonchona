@@ -35,9 +35,8 @@
   ],
   "vars": {
     // ALLOWED_ORIGINS: Origenes que pueden abrir el WebSocket, separados por coma. El worker rechaza cualquier otro
-    // para que otra web no monte su propio chat sobre nuestra sala. Incluye el dominio de
-    // prueba mientras dura la migracion; se retira en el corte final si ya no hace falta.
-    "ALLOWED_ORIGINS": "https://nuevo.bonchonaradio.com,https://bonchonaradio.com,https://www.bonchonaradio.com,http://localhost:3000,http://127.0.0.1:3000"
+    // para que otra web no monte su propio chat sobre nuestra sala.
+    "ALLOWED_ORIGINS": "https://bonchonaradio.com,https://www.bonchonaradio.com,http://localhost:3000,http://127.0.0.1:3000"
   },
   "observability": {
     "enabled": true
