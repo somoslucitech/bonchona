@@ -20,12 +20,11 @@
     "binding": "ASSETS"
   },
   // routes: dominio real de produccion (corte hecho el 2026-09-23, reemplaza al WordPress que
-  // vivia en el hosting EasyWP) mas el subdominio de pruebas, que se puede retirar cuando ya
-  // no haga falta.
+  // vivia en el hosting EasyWP). El subdominio de pruebas nuevo.bonchonaradio.com se retiro el
+  // 2026-10-24: no volver a listarlo o el deploy lo recrea.
   "routes": [
     { "pattern": "bonchonaradio.com", "custom_domain": true },
-    { "pattern": "www.bonchonaradio.com", "custom_domain": true },
-    { "pattern": "nuevo.bonchonaradio.com", "custom_domain": true }
+    { "pattern": "www.bonchonaradio.com", "custom_domain": true }
   ],
   "r2_buckets": [
     {
@@ -79,15 +78,14 @@
     // TURNSTILE_HOSTNAMES: Dominios desde los que se acepta un desafio de Turnstile resuelto. Siteverify devuelve donde
     // se resolvio el widget; sin comprobarlo, alguien podria montar el mismo widget en otra web,
     // recoger tokens de sus visitantes y gastarlos aqui. NO anadir localhost: eso solo va en
-    // .env.local. Incluye el dominio de prueba mientras dura la migracion; se retira en el
-    // corte final si ya no hace falta.
+    // .env.local.
     // TURNSTILE_SITE_KEY: Clave PUBLICA del widget de Turnstile: aparece en el HTML, no es un secreto. Va aqui y no
     // como NEXT_PUBLIC_ porque esas se incrustan en `next build` y no se podrian cambiar sin
     // recompilar. La clave SECRETA no va aqui: se guarda como secreto del Worker. Widget
     // propio creado en la cuenta bonchona1071 (no el heredado de somoslucitech), para que
     // este recurso tambien viva separado del resto de clientes del desarrollador.
     "TURNSTILE_SITE_KEY": "0x4AAAAAAE_OyJFCvMleaCaW",
-    "TURNSTILE_HOSTNAMES": "nuevo.bonchonaradio.com,bonchonaradio.com,www.bonchonaradio.com"
+    "TURNSTILE_HOSTNAMES": "bonchonaradio.com,www.bonchonaradio.com"
   },
   // unsafe: Limitador nativo de Workers para /api/chat/ticket. No usa D1 ni almacenamiento, asi que
   // frenar abuso no cuesta nada. Es por centro de datos y best-effort: protege el coste, no es

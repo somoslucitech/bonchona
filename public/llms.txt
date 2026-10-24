@@ -7,6 +7,8 @@
 ## Secciones
 
 - [Inicio](/): reproductor en vivo y parrilla de programación.
+- [Programación](/programas): todos los programas con horario, locutores y
+  descripción; cada uno tiene su propia página en /programas/<programa>.
 - [Anúnciate](/famoso): tarifas de publicidad rotativa, patrocinio de programas
   y Zona de Talento, donde los músicos envían su demo sin costo.
 - [Estudio](/estudio): servicios de producción de audio, podcast y jingles.
