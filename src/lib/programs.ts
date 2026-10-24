@@ -18,7 +18,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
     time: "08:00 AM - 10:00 AM",
     title: "¿Qué pasó ayer?",
     locutor: "Alejandra Melian y Alejandro Rodríguez",
-    banner: "/programas/que_paso_ayer.png",
+    banner: "/programas/que_paso_ayer.webp",
     description: "¿Qué pasó ayer? es tu magazine matutino definitivo, liderado por el carisma de Alejandra Melian y Alejandro Rodríguez. Despierta con el pulso vibrante de la farándula, las noticias de actualidad más impactantes y un análisis entretenido de lo que realmente importa. El programa ideal para empezar el día con energía, bien informado y con la dosis perfecta de picardía que solo Bonchona te ofrece.",
     richText: "Tu mañana ya no será igual. Sintoniza un espacio donde la actualidad se encuentra con el entretenimiento puro. Noticias, tendencias y la mejor compañía para que no te pierdas de nada.",
     price: 350
@@ -28,7 +28,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
     time: "10:00 AM - 12:00 PM",
     title: "Mucha People",
     locutor: "Eduardo Rod y Víctor Matite",
-    banner: "/programas/mucha_pipol.png",
+    banner: "/programas/mucha_pipol.webp",
     description: "La alegría se apodera de tus mañanas en Mucha People, el corazón de Concursos y Variedades. Eduardo Rod y Víctor Matite transforman tu radio en una fiesta interactiva llena de juegos dinámicos, entrevistas exclusivas con tus artistas favoritos y sorpresas que te mantendrán pegado al dial. Es el espacio donde el protagonista eres tú, con la mejor energía de Valencia de lunes a viernes.",
     richText: "De 10 a 12, vive la experiencia Mucha People. Risas, premios y la conexión total con la gente que hace del centro del país un lugar bonchón.",
     price: 200
@@ -38,7 +38,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
     time: "01:00 PM - 03:00 PM",
     title: "¡Te lo dije!",
     locutor: "Paola Meza y Richhel Aponte",
-    banner: "/programas/te_lo_dije.png",
+    banner: "/programas/te_lo_dije.webp",
     description: "¡Te lo dije! es el punto de encuentro donde Paola Meza y Richhel Aponte te ponen al día con todo lo que necesitas saber. Desde los datos curiosos más asombrosos hasta la información deportiva más relevante a nivel regional, nacional e internacional. Un espacio ágil, inteligente y con mucha personalidad que marca la pauta informativa de tus tardes, de lunes a viernes por Bonchona 107.1 FM.",
     richText: "Entérate de todo antes que nadie. Deportes, curiosidades y el análisis fresco que estabas buscando para tus mediodías.",
     price: 200
@@ -48,7 +48,7 @@ export const DEFAULT_PROGRAMS: Program[] = [
     time: "04:00 PM - 06:00 PM",
     title: "Favoritas 107",
     locutor: "Carlos Briceño Jr.",
-    banner: "/programas/favoritas.png",
+    banner: "/programas/favoritas.webp",
     description: "Favoritas 107 es el resumen musical de mayor impacto en el país, conducido por Carlos Briceño Jr. Sumérgete en un viaje por los éxitos más recientes y lo más sonado en el panorama musical global. Con una selección curada para los oídos más exigentes, este espacio es el refugio perfecto para los amantes del buen ritmo. Disfruta de 4 a 6 de la tarde de la mejor selección musical en un solo lugar, con el sello de calidad Briceño.",
     richText: "El conteo más esperado del día. Los hits que dominan las listas mundiales suenan primero y mejor en tus Favoritas 107.",
     price: 350
@@ -67,13 +67,23 @@ interface ProgramRow {
   price: number | null;
 }
 
+// Los banners de fábrica eran PNG de 1920x1080 de ~1,6 MB cada uno: el 90 %
+// del peso de la portada. Sus rutas .png siguen guardadas en D1, así que se
+// traducen al leer a la versión WebP (1600x900, ~75 KB) que vive al lado en
+// public/programas. Los PNG se conservan por si algo los enlaza desde fuera.
+const OPTIMIZED_BANNERS = /^\/programas\/(que_paso_ayer|mucha_pipol|te_lo_dije|favoritas)\.png$/;
+
+function optimizedBanner(banner: string): string {
+  return banner.replace(OPTIMIZED_BANNERS, "/programas/$1.webp");
+}
+
 function mapProgram(row: ProgramRow): Program {
   return {
     id: row.id,
     time: row.time,
     title: row.title,
     locutor: row.locutor,
-    banner: row.banner,
+    banner: optimizedBanner(row.banner),
     description: row.description,
     richText: row.rich_text,
     price: row.price ?? undefined,

@@ -40,8 +40,8 @@ export default function FamosoClient({ initialRotativeRates, initialPrograms, wh
       {/* Header Publicidad & Talento - Normalized Proportions */}
       <section className="relative w-full py-16 sm:py-20 px-4 sm:px-6 text-center max-w-7xl mx-auto z-10">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ y: 20 }}
+          animate={{ y: 0 }}
           className="inline-flex items-center gap-3 px-5 sm:px-6 py-2 sm:py-2.5 rounded-full glass border-white/10 mb-10 sm:mb-12 shadow-xl"
         >
            <span className="w-2 h-2 bg-bonchona-red rounded-full animate-pulse"></span>
@@ -49,17 +49,18 @@ export default function FamosoClient({ initialRotativeRates, initialPrograms, wh
         </motion.div>
         
         <motion.h1 
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ x: -30 }}
+          animate={{ x: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="text-5xl sm:text-7xl md:text-8xl lg:text-[100px] xl:text-[115px] font-black tracking-tighter mb-8 sm:mb-10 leading-[0.85] italic uppercase"
         >
+          <span className="sr-only">Publicidad en radio en Valencia con Bonchona 107.1 FM: </span>
           IMPULSA TU <br /><span className="text-gradient">MARCA.</span>
         </motion.h1>
         
         <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ y: 8 }}
+          animate={{ y: 0 }}
           transition={{ delay: 0.4 }}
           className="text-zinc-400 text-base sm:text-lg md:text-xl max-w-3xl mx-auto leading-relaxed font-medium mb-10 sm:mb-12 px-4 sm:px-0"
         >
