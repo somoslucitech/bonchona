@@ -68,6 +68,31 @@ export function websiteJsonLd() {
   };
 }
 
+/** Un programa de la parrilla como RadioSeries emitido por la emisora. */
+export function programJsonLd(program: {
+  id: string; title: string; locutor: string; time: string; banner: string; description: string;
+}, path: string) {
+  const site = getSiteUrl();
+  // "Alejandra Melian y Alejandro Rodríguez" -> dos personas.
+  const hosts = program.locutor
+    .split(/\s*(?:,|\by\b|&)\s*/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+  return {
+    "@context": "https://schema.org",
+    "@type": "RadioSeries",
+    "@id": `${absoluteUrl(path)}#programa`,
+    name: program.title,
+    description: program.description,
+    url: absoluteUrl(path),
+    image: program.banner ? absoluteUrl(program.banner) : absoluteUrl("/logos-bonchona/92.png"),
+    inLanguage: "es-VE",
+    actor: hosts.map((name) => ({ "@type": "Person", name })),
+    publisher: { "@id": `${site}/#organization` },
+    productionCompany: { "@id": `${site}/#organization` },
+  };
+}
+
 export function breadcrumbJsonLd(items: Array<{ name: string; path: string }>) {
   return {
     "@context": "https://schema.org",

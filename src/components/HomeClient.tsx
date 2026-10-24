@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { motion } from 'motion/react';
 import { Program } from '@/lib/db';
 import { useSeason, type Season } from '@/lib/season';
+import { bannerThumb, programPath } from '@/lib/program-slug';
 
 const HERO_COPY: Record<Season, { kicker: string; lead: string; accent: string }> = {
   ninguna: { kicker: '107.1 FM | Sintonía Total', lead: 'VIVE EL', accent: 'BONCHE.' },
@@ -142,11 +143,23 @@ export default function HomeClient({ initialPrograms }: HomeClientProps) {
             <motion.div 
               key={idx} 
               whileHover={{ y: -10 }}
-              onClick={() => setSelectedProgram(show)}
               className="group relative h-[380px] sm:h-[450px] glass rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden cursor-pointer border-white/5 hover:border-bonchona-red/50 transition-all duration-500"
             >
+              {/* Enlace real a la página del programa (lo siguen buscadores y
+                  asistentes de IA); el clic normal sigue abriendo el modal y
+                  Ctrl/Cmd+clic abre la página en otra pestaña. */}
+              <Link
+                href={programPath(show.id)}
+                aria-label={`${show.title}: ${show.time}`}
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                  e.preventDefault();
+                  setSelectedProgram(show);
+                }}
+                className="absolute inset-0 z-20"
+              />
               <Image 
-                src={show.banner || "/logos-bonchona/92.png"} 
+                src={show.banner ? bannerThumb(show.banner) : "/logos-bonchona/92.png"} 
                 alt={show.title} 
                 fill 
                 className="object-cover opacity-40 group-hover:opacity-70 group-hover:scale-110 transition-all duration-700 grayscale group-hover:grayscale-0"
@@ -333,6 +346,14 @@ export default function HomeClient({ initialPrograms }: HomeClientProps) {
                   <p className="text-zinc-500 text-xs sm:text-sm leading-relaxed max-w-md">
                     {selectedProgram.description}
                   </p>
+
+                  <Link
+                    href={programPath(selectedProgram.id)}
+                    className="inline-flex items-center gap-3 text-[10px] font-black text-bonchona-red uppercase tracking-widest hover:text-white transition-colors"
+                  >
+                    <span className="w-8 h-px bg-bonchona-red"></span>
+                    Ver la página del programa
+                  </Link>
                 </div>
               </div>
             </div>

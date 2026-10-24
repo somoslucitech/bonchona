@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Program, RotativeRate, SiteSettings } from '@/lib/db';
+import { newProgramId } from "@/lib/program-slug";
 import type { User, UserRole } from '@/lib/users';
 import type { SessionRow } from '@/lib/sessions';
 import type { Invite } from '@/lib/invites';
@@ -182,10 +183,7 @@ export default function AdminClient({
     let updatedPrograms: Program[] = [];
 
     if (isAdding) {
-      const newId = (programForm.title || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '');
+      const newId = newProgramId(programForm.title || '', programs.map(p => p.id));
 
       const newProg: Program = {
         id: newId,
