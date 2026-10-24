@@ -68,7 +68,7 @@ async function getLocalFileDb(): Promise<LocalFileDbInfo | null> {
     try {
       const fs = await import('fs');
       const path = await import('path');
-      const filePath = path.join(process.cwd(), 'local_db.json');
+      const filePath = path.join(/*turbopackIgnore: true*/ process.cwd(), 'local_db.json');
       return { fs, filePath };
     } catch {
       return null;

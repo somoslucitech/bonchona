@@ -124,7 +124,7 @@ export async function uploadPrerollAction(formData: FormData) {
       try {
         const fs = await import('fs');
         const path = await import('path');
-        const localPath = path.join(process.cwd(), 'public', 'local-preroll.mp3');
+        const localPath = path.join(/*turbopackIgnore: true*/ process.cwd(), 'public', 'local-preroll.mp3');
         fs.writeFileSync(localPath, buffer);
         console.log("Saved local preroll fallback to:", localPath);
         return { success: true, localDev: true };
@@ -200,14 +200,14 @@ export async function uploadProgramImageAction(formData: FormData) {
       try {
         const fs = await import('fs');
         const path = await import('path');
-        const localDir = path.join(process.cwd(), 'public', 'programas');
+        const localDir = path.join(/*turbopackIgnore: true*/ process.cwd(), 'public', 'programas');
 
         // Ensure directory exists
         if (!fs.existsSync(localDir)) {
           fs.mkdirSync(localDir, { recursive: true });
         }
 
-        const localPath = path.join(localDir, sanitizedName);
+        const localPath = path.join(/*turbopackIgnore: true*/ localDir, sanitizedName);
         fs.writeFileSync(localPath, buffer);
         console.log("Saved local program image fallback to:", localPath);
         return { success: true, url: `/programas/${sanitizedName}`, localDev: true };
