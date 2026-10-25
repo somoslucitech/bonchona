@@ -8,6 +8,7 @@ import PageTransition from "@/components/PageTransition";
 import VisitTracker from "@/components/VisitTracker";
 import SeasonalTheme from "@/components/SeasonalTheme";
 import InstallAppPrompt from "@/components/InstallAppPrompt";
+import SiteFooter from "@/components/SiteFooter";
 import ChatPanel from "@/components/chat/ChatPanel";
 import type { SiteSettings } from "@/lib/db";
 
@@ -104,6 +105,8 @@ export default function RootLayoutClient({ settings, children }: RootLayoutClien
           {children}
         </PageTransition>
       </main>
+
+      <SiteFooter />
 
       <GlobalPlayer
         streamUrl={settings.streamUrl}

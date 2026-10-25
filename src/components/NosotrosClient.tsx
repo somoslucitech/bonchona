@@ -145,31 +145,6 @@ export default function NosotrosClient() {
          </motion.div>
       </section>
 
-      {/* Final Identity Strip / Footer */}
-      <footer className="w-full py-16 sm:py-20 px-4 sm:px-6 z-10 bg-bonchona-navy border-t border-white/5 relative">
-        <div className="max-w-7xl mx-auto flex flex-col items-center gap-10 sm:gap-12">
-          <div className="flex flex-col items-center gap-6">
-            <Image src="/logos-bonchona/92.png" alt="Logo" width={80} height={80} className="w-16 sm:w-20 h-auto opacity-40 object-contain" />
-            <div className="text-center">
-              <h2 className="text-[70px] sm:text-[100px] md:text-[140px] font-black text-white/5 leading-none italic uppercase tracking-tighter select-none">
-                107.1
-              </h2>
-              <p className="text-zinc-600 font-black uppercase tracking-[0.6em] sm:tracking-[0.8em] text-[9px] sm:text-[10px] mt-4">Valencia, Venezuela</p>
-            </div>
-          </div>
-          
-          <div className="w-full h-px bg-white/5"></div>
-          
-          <div className="flex flex-col md:flex-row justify-between items-center w-full gap-8 text-center md:text-left">
-            <p className="text-[9px] sm:text-[10px] text-zinc-700 font-bold uppercase tracking-widest">© 2026 Radio Bonchona. Todos los derechos reservados.</p>
-            <div className="flex flex-wrap justify-center gap-6 sm:gap-8">
-              <Link href="/nosotros" className="text-[9px] sm:text-[10px] font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">Empresa</Link>
-              <Link href="/estudio" className="text-[9px] sm:text-[10px] font-bold text-zinc-500 hover:text-white transition-colors uppercase tracking-widest">Estudio</Link>
-              <Link href="/famoso" className="text-[9px] sm:text-[10px] font-bold text-bonchona-red hover:text-white transition-colors uppercase tracking-widest">Anúnciate</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
