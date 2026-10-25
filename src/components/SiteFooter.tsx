@@ -9,9 +9,10 @@ import { usePathname } from "next/navigation";
 // sin él.
 
 // Crédito del desarrollador. Marcado con UTM para que Somos Luci vea en su
-// analítica cuánta gente llega desde aquí, y con rel="nofollow": un enlace
-// repetido en el pie de todas las páginas de un cliente es lo que Google
-// considera un esquema de enlaces, y así no corre ese riesgo.
+// analítica cuánta gente llega desde aquí. Sin rel="nofollow" a propósito:
+// con un solo cliente y el enlace con la marca, el riesgo de que Google lo
+// tome por esquema de enlaces es bajo, y así cuenta para el SEO de Somos Luci.
+// Cuando haya muchos sitios de clientes firmados, conviene volver a ponerlo.
 const CREDIT_URL =
   "https://somosluci.com/?utm_source=bonchonaradio&utm_medium=referral&utm_campaign=credito-web";
 
@@ -49,7 +50,7 @@ export default function SiteFooter() {
             <a
               href={CREDIT_URL}
               target="_blank"
-              rel="nofollow noopener"
+              rel="noopener"
               className="group inline-flex items-center gap-2 text-[9px] sm:text-[10px] font-bold text-zinc-600 hover:text-white transition-colors uppercase tracking-widest"
             >
               <span className="w-5 h-5 rounded-md bg-white flex items-center justify-center flex-shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
