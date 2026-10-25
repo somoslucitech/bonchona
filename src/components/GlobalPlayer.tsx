@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import * as gtag from "@/lib/gtag";
+import { reportListening } from "@/lib/traffic-source";
 
 // URLs
 const PREROLL_URL = "/api/preroll";
@@ -18,6 +19,16 @@ const PREROLL_URL = "/api/preroll";
  */
 const PREROLL_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutos
 const PREROLL_STORAGE_KEY = "bonchona:preroll:heardAt";
+
+/**
+ * Reconexión del vivo. Con datos móviles el stream se corta seguido, y antes
+ * el reproductor se quedaba mudo sin avisar: el oyente se iba. Ahora reintenta
+ * solo, esperando 1, 2, 4, 8... hasta 30 s entre intentos, mientras la persona
+ * no haya pausado.
+ */
+const RECONNECT_MAX_DELAY_MS = 30_000;
+/** Cuánto se tolera el búfer vacío antes de dar el stream por caído. */
+const STALL_TIMEOUT_MS = 12_000;
 
 function prerollHeardRecently(): boolean {
   try {
@@ -64,6 +75,12 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
   }>({ open: false, reason: null, count: null });
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
+  // true mientras la persona quiere oír el vivo (le dio a play y no pausó).
+  const wantLiveRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- Metadata Fetching ---
 
@@ -301,10 +318,12 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
     const wasPreroll = audio.src.includes("/api/preroll");
     
     setStatus("playing_live");
+    wantLiveRef.current = true;
     audio.src = streamUrl;
     try {
       await audio.play();
       setIsPlaying(true);
+      reportListening();
       
       // GA4 event tracking
       gtag.event({ action: "stream_start", category: "Audio" });
@@ -315,6 +334,73 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
       console.error("Live play error:", e);
     }
   }, [streamUrl]);
+
+  /** URL del vivo sin caché: tras un corte, el navegador no debe reusar el búfer viejo. */
+  const freshStreamUrl = useCallback(
+    () => `${streamUrl}${streamUrl.includes("?") ? "&" : "?"}_r=${Date.now()}`,
+    [streamUrl],
+  );
+
+  const reconnect = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !wantLiveRef.current || retryTimerRef.current) return;
+    const attempt = retryCountRef.current;
+    retryCountRef.current = attempt + 1;
+    setReconnecting(true);
+    gtag.event({ action: "stream_reconnect", category: "Audio", value: attempt + 1 });
+
+    const delay = Math.min(RECONNECT_MAX_DELAY_MS, 1000 * 2 ** attempt);
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      if (!wantLiveRef.current) return;
+      audio.src = freshStreamUrl();
+      // Si este intento también falla, el evento error o el temporizador de
+      // búfer vacío vuelven a llamar a reconnect con una espera mayor.
+      audio.play().catch(() => {});
+    }, delay);
+  }, [freshStreamUrl]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const clearStall = () => {
+      if (stallTimerRef.current) clearTimeout(stallTimerRef.current);
+      stallTimerRef.current = null;
+    };
+    const onPlaying = () => {
+      clearStall();
+      retryCountRef.current = 0;
+      setReconnecting(false);
+    };
+    // "waiting" salta en cada microcorte; solo si el búfer sigue vacío un buen
+    // rato se da el stream por caído.
+    const onWaiting = () => {
+      if (!wantLiveRef.current || stallTimerRef.current) return;
+      stallTimerRef.current = setTimeout(() => {
+        stallTimerRef.current = null;
+        reconnect();
+      }, STALL_TIMEOUT_MS);
+    };
+    // Volvió la conexión: no tiene sentido esperar el resto del retroceso.
+    const onOnline = () => {
+      if (!wantLiveRef.current) return;
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+      retryCountRef.current = 0;
+      reconnect();
+    };
+    audio.addEventListener("playing", onPlaying);
+    audio.addEventListener("waiting", onWaiting);
+    audio.addEventListener("stalled", onWaiting);
+    window.addEventListener("online", onOnline);
+    return () => {
+      clearStall();
+      audio.removeEventListener("playing", onPlaying);
+      audio.removeEventListener("waiting", onWaiting);
+      audio.removeEventListener("stalled", onWaiting);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [mounted, reconnect]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -354,16 +440,21 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
       // Lo escuchó completo: no se lo repetimos durante la ventana de cortesía.
       markPrerollHeard();
       playLive();
+    } else if (status === "playing_live") {
+      // Un stream en vivo no "termina": si llega aquí, se cortó.
+      reconnect();
     }
-  }, [status, playLive]);
+  }, [status, playLive, reconnect]);
 
   const handleAudioError = useCallback(() => {
     // Si falla el preroll o cualquier audio, intentamos ir al live como fallback silencioso
     if (status === "playing_preroll" || status === "idle") {
       console.warn("Preroll failed or unconfigured, skipping to live...");
       playLive();
+    } else if (status === "playing_live") {
+      reconnect();
     }
-  }, [status, playLive]);
+  }, [status, playLive, reconnect]);
 
   const togglePlay = useCallback(async () => {
     const audio = audioRef.current;
@@ -391,10 +482,18 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
         gtag.event({ action: "preroll_start", category: "Audio" });
       }
 
+      // Al retomar el vivo tras una pausa se pide de nuevo: si no, sonaría lo
+      // que quedó en el búfer, minutos atrasado respecto a la radio.
+      if (status === "playing_live") {
+        wantLiveRef.current = true;
+        audio.src = freshStreamUrl();
+      }
+
       try {
         await audio.play();
         setIsPlaying(true);
         if (status === "playing_live") {
+          reportListening();
           gtag.event({ action: "stream_start", category: "Audio" });
         }
       } catch {
@@ -402,6 +501,10 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
         playLive();
       }
     } else {
+      wantLiveRef.current = false;
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+      setReconnecting(false);
       audio.pause();
       setIsPlaying(false);
       if (status === "playing_live") {
@@ -410,7 +513,7 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
         gtag.event({ action: "preroll_pause", category: "Audio" });
       }
     }
-  }, [isPlaying, status, initAudioContext, playLive]);
+  }, [isPlaying, status, initAudioContext, playLive, freshStreamUrl]);
 
   useEffect(() => {
     const handleRemotePlay = () => {
@@ -418,6 +521,37 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
     };
     window.addEventListener('play-radio', handleRemotePlay);
     return () => window.removeEventListener('play-radio', handleRemotePlay);
+  }, [isPlaying, togglePlay]);
+
+  // Pantalla de bloqueo, notificación del celular y auriculares: muestran la
+  // canción que suena y permiten pausar sin abrir el navegador.
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: status === "playing_preroll" ? "Spot publicitario" : metadata || "Radio Bonchona 107.1",
+      artist: "Bonchona 107.1 FM · En vivo",
+      album: "Sintonía Total",
+      artwork: [
+        { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+        { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      ],
+    });
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+  }, [metadata, isPlaying, status]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const ms = navigator.mediaSession;
+    const play = () => { if (!isPlaying) togglePlay(); };
+    const pause = () => { if (isPlaying) togglePlay(); };
+    ms.setActionHandler("play", play);
+    ms.setActionHandler("pause", pause);
+    ms.setActionHandler("stop", pause);
+    return () => {
+      ms.setActionHandler("play", null);
+      ms.setActionHandler("pause", null);
+      ms.setActionHandler("stop", null);
+    };
   }, [isPlaying, togglePlay]);
 
   const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -468,7 +602,18 @@ export default function GlobalPlayer({ streamUrl, songRequestWhatsapp }: GlobalP
           </p>
           <div className="h-4 relative overflow-hidden">
             <AnimatePresence mode="wait">
-              {status === "playing_preroll" ? (
+              {reconnecting ? (
+                <motion.p
+                  key="reconnecting"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="text-zinc-400 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] animate-pulse truncate"
+                  role="status"
+                >
+                  Reconectando…
+                </motion.p>
+              ) : status === "playing_preroll" ? (
                 <motion.p 
                   key="preroll"
                   initial={{ opacity: 0, y: 10 }}

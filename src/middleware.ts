@@ -28,7 +28,7 @@ const WP_GONE_EXACT = new Set([
 
 /** Rutas reales del sitio: nunca se tocan. */
 const APP_ROUTES = new Set([
-  "admin", "api", "estudio", "famoso", "nosotros", "programas",
+  "admin", "api", "envivo", "estudio", "famoso", "nosotros", "programas",
   "_next", "sitemap.xml", "robots.txt", "llms.txt", "favicon.ico",
 ]);
 

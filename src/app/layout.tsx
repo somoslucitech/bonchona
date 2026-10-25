@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
@@ -19,6 +19,11 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+// Color de la barra del navegador y de la app instalada (ver app/manifest.ts).
+export const viewport: Viewport = {
+  themeColor: "#0A0B1E",
+};
 
 // Cached for 5 minutes; saveSettingsAction() busts this immediately via revalidatePath.
 export const revalidate = 300;
@@ -75,7 +80,14 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     icons: {
       icon: [{ url: "/logos-bonchona/ico.png", type: "image/png" }],
-      apple: [{ url: "/logos-bonchona/ico.png" }],
+      // El de iPhone necesita fondo opaco: con transparencia iOS lo pinta en negro.
+      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    },
+    // "Agregar a inicio" en iPhone: abre a pantalla completa como una app.
+    appleWebApp: {
+      capable: true,
+      title: "Bonchona",
+      statusBarStyle: "black-translucent",
     },
     category: "music",
   };
