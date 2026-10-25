@@ -25,8 +25,19 @@ export interface DayPoint {
   visitors: number;   // visitantes únicos
 }
 
+/** Visitas y escuchas por canal en el periodo, de más a menos visitas. */
+export interface SourceRow {
+  source: string;
+  visits: number;  // sesiones que llegaron por ese canal
+  plays: number;   // de esas, cuántas le dieron a play
+}
+
 export interface AnalyticsSummary {
   series: DayPoint[];
+  sources: SourceRow[];
+  /** Sesiones que escucharon / sesiones, en el periodo. */
+  totalVisits: number;
+  totalPlays: number;
   /** Oyentes ahora mismo (última muestra), o null si no hay datos. */
   listenersNow: number | null;
   lastSampleAt: number | null;
@@ -48,6 +59,9 @@ export async function getAnalytics(days = 30): Promise<AnalyticsSummary> {
   const env = getCloudflareEnv();
   const empty: AnalyticsSummary = {
     series: [],
+    sources: [],
+    totalVisits: 0,
+    totalPlays: 0,
     listenersNow: null,
     lastSampleAt: null,
     totals: { peakAllTime: 0, viewsToday: 0, visitorsToday: 0, viewsPrev: 0, visitorsPrev: 0, sampleCount: 0 },
@@ -108,6 +122,17 @@ export async function getAnalytics(days = 30): Promise<AnalyticsSummary> {
       if (p) p.visitors = r.visitors ?? 0;
     }
 
+    // Tabla aparte y nueva: si todavía no existe (nadie ha visitado desde el
+    // despliegue), el resto del panel no debe caerse por eso.
+    const sourceRows = await env.DB.prepare(
+      `SELECT source, SUM(visits) AS visits, SUM(plays) AS plays
+       FROM daily_sources WHERE day >= ?
+       GROUP BY source ORDER BY visits DESC, plays DESC`
+    ).bind(vetDayKey(since)).all<SourceRow>().catch(() => ({ results: [] as SourceRow[] }));
+    const sources = (sourceRows.results ?? []).map((r) => ({
+      source: r.source, visits: r.visits ?? 0, plays: r.plays ?? 0,
+    }));
+
     const series = [...byDay.values()];
     const half = Math.floor(series.length / 2);
     const sum = (arr: DayPoint[], k: "views" | "visitors") => arr.reduce((a, b) => a + b[k], 0);
@@ -116,6 +141,9 @@ export async function getAnalytics(days = 30): Promise<AnalyticsSummary> {
 
     return {
       series,
+      sources,
+      totalVisits: sources.reduce((a, r) => a + r.visits, 0),
+      totalPlays: sources.reduce((a, r) => a + r.plays, 0),
       listenersNow: lastSample?.listeners ?? null,
       lastSampleAt: lastSample?.ts ?? null,
       totals: {

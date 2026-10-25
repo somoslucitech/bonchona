@@ -7,6 +7,7 @@ import GlobalPlayer from "@/components/GlobalPlayer";
 import PageTransition from "@/components/PageTransition";
 import VisitTracker from "@/components/VisitTracker";
 import SeasonalTheme from "@/components/SeasonalTheme";
+import InstallAppPrompt from "@/components/InstallAppPrompt";
 import ChatPanel from "@/components/chat/ChatPanel";
 import type { SiteSettings } from "@/lib/db";
 
@@ -110,6 +111,8 @@ export default function RootLayoutClient({ settings, children }: RootLayoutClien
       />
 
       <ChatPanel open={isChatOpen} onClose={() => setIsChatOpen(false)} />
+
+      <InstallAppPrompt />
 
       {/* Floating WhatsApp CTA. Se oculta con el chat abierto porque ocupan la
           misma esquina inferior derecha. */}

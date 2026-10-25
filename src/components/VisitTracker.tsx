@@ -2,9 +2,10 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { getSessionSource, sendTrack } from "@/lib/traffic-source";
 
 /**
- * Avisa a /api/track de cada vista de página.
+ * Avisa a /api/track de cada vista de página, con el canal de la sesión.
  *
  * Va en el cliente y no en el middleware a propósito: no añade latencia al
  * render y deja fuera a los bots, que no ejecutan JS. Así el número del panel
@@ -17,11 +18,8 @@ export default function VisitTracker() {
     // El panel de administración no cuenta como visita del sitio.
     if (pathname.startsWith("/admin")) return;
 
-    // keepalive para que el navegador no cancele el aviso si el usuario
-    // navega justo después de cargar.
-    fetch("/api/track", { method: "POST", keepalive: true }).catch(() => {
-      /* las métricas nunca deben romper la navegación */
-    });
+    const { source, isNew } = getSessionSource();
+    sendTrack("pageview", { source, newSession: isNew });
   }, [pathname]);
 
   return null;

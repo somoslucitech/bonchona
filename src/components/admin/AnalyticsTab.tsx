@@ -26,6 +26,31 @@ function fullDay(day: string): string {
   });
 }
 
+// Nombres legibles para los canales que asigna traffic-source.ts. Un canal
+// nuevo (p. ej. ?utm_source=concurso) se muestra tal cual.
+const SOURCE_LABELS: Record<string, string> = {
+  directo: 'Directo / sin referencia',
+  fm: 'Al aire (bonchonaradio.com/envivo)',
+  app: 'App instalada',
+  google: 'Google',
+  bing: 'Bing',
+  buscadores: 'Otros buscadores',
+  ia: 'Asistentes de IA',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  youtube: 'YouTube',
+  x: 'X / Twitter',
+  whatsapp: 'WhatsApp',
+  directorios: 'Directorios de radio',
+  'otros-sitios': 'Otros sitios',
+};
+
+function pct(part: number, total: number): string {
+  if (!total) return '—';
+  return `${Math.round((part / total) * 100)}%`;
+}
+
 function agoLabel(ts: number | null): string {
   if (!ts) return 'sin muestras aún';
   const mins = Math.round((Date.now() - ts) / 60000);
@@ -36,7 +61,7 @@ function agoLabel(ts: number | null): string {
 }
 
 export default function AnalyticsTab({ data }: { data: AnalyticsSummary }) {
-  const { series, listenersNow, lastSampleAt, totals } = data;
+  const { series, listenersNow, lastSampleAt, totals, sources, totalVisits, totalPlays } = data;
 
   const listenerPoints: ChartPoint[] = series.map((p) => ({
     label: shortDay(p.day),
@@ -100,6 +125,52 @@ export default function AnalyticsTab({ data }: { data: AnalyticsSummary }) {
           </div>
         </div>
       )}
+
+      <section className="glass rounded-2xl p-5 sm:p-6 border-white/5">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
+          <div>
+            <h3 className="text-sm font-black uppercase tracking-widest text-white">De dónde llegan · 30 días</h3>
+            <p className="text-[11px] text-zinc-500 mt-1.5 leading-relaxed max-w-xl">
+              Cada visita se asigna al canal que la trajo. &quot;Escucharon&quot; son las visitas que le dieron
+              a play: el número que más importa para crecer en oyentes.
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Visitas que escuchan</p>
+            <p className="text-3xl font-black italic tracking-tighter text-bonchona-red tabular-nums">{pct(totalPlays, totalVisits)}</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-600">{totalPlays} de {totalVisits}</p>
+          </div>
+        </div>
+
+        {sources.length === 0 ? (
+          <p className="text-[11px] text-zinc-500">
+            Aún no hay datos: se empiezan a contar desde este despliegue, con la primera visita.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="text-[9px] font-black uppercase tracking-widest text-zinc-500 border-b border-white/5">
+                  <th className="py-2 pr-4">Canal</th>
+                  <th className="py-2 pr-4 text-right">Visitas</th>
+                  <th className="py-2 pr-4 text-right">Escucharon</th>
+                  <th className="py-2 text-right">% que escucha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sources.map((r) => (
+                  <tr key={r.source} className="border-b border-white/5 last:border-0">
+                    <td className="py-2.5 pr-4 text-white font-bold">{SOURCE_LABELS[r.source] ?? r.source}</td>
+                    <td className="py-2.5 pr-4 text-right tabular-nums text-zinc-300">{r.visits}</td>
+                    <td className="py-2.5 pr-4 text-right tabular-nums text-zinc-300">{r.plays}</td>
+                    <td className="py-2.5 text-right tabular-nums text-bonchona-red font-bold">{pct(r.plays, r.visits)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <TimeSeriesChart
         title="Oyentes por día"
